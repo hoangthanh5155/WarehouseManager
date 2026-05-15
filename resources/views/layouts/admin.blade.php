@@ -236,12 +236,12 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#reportSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="reportSubmenu">
+                    <a href="#reportSubmenu" class="nav-link collapsed {{ request()->routeIs('reports.*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="reportSubmenu">
                         <div><i class="bi bi-bar-chart-line-fill menu-icon"></i>Báo cáo - Thống kê</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
                     <ul class="collapse submenu" id="reportSubmenu" data-bs-parent="#sidebarMenu">
-                        <li><a href="#" class="nav-link">Doanh thu</a></li>
+                        <li><a href="{{ route('reports.revenue') }}" class="nav-link {{ request()->routeIs('reports.revenue') ? 'active' : '' }}">Doanh thu</a></li>
                         <li><a href="#" class="nav-link">Nhập xuất tồn</a></li>
                     </ul>
                 </li>

@@ -96,6 +96,10 @@ class ExportController extends Controller
         DB::beginTransaction();
         try {
             $now = now();
+            $sellerName = $request->filled('seller_name') ? $request->seller_name : config('app.name');
+            $sellerTaxCode = $request->filled('seller_tax_code') ? $request->seller_tax_code : '';
+            $sellerAddress = $request->filled('seller_address') ? $request->seller_address : '';
+            $sellerPhone = $request->filled('seller_phone') ? $request->seller_phone : '';
             
             $customerId = $request->customer_id;
             if (!$customerId && !empty($request->buyer_name)) {
@@ -134,10 +138,10 @@ class ExportController extends Controller
                 'export_code' => $mainExportCode,
                 'export_type' => $request->export_type,
                 'customer_type' => $request->customer_type,
-                'seller_name' => $request->seller_name ?? 'CÔNG TY TNHH PHÁT TRIỂN CÔNG NGHỆ THÁI SƠN',
-                'seller_tax_code' => $request->seller_tax_code ?? '0101300842',
-                'seller_address' => $request->seller_address ?? 'B1-Tuổi trẻ, Hoàng Quốc Việt, Cầu Giấy, Hà Nội',
-                'seller_phone' => $request->seller_phone ?? '04.37545222',
+                'seller_name' => $sellerName,
+                'seller_tax_code' => $sellerTaxCode,
+                'seller_address' => $sellerAddress,
+                'seller_phone' => $sellerPhone,
                 'customer_id' => $customerId,
                 'buyer_name' => $request->buyer_name,
                 'company_name' => $request->company_name,
@@ -192,10 +196,10 @@ class ExportController extends Controller
                         'export_code' => $subExportCode,
                         'export_type' => $request->export_type,
                         'customer_type' => $request->customer_type,
-                        'seller_name' => $request->seller_name ?? 'CÔNG TY TNHH PHÁT TRIỂN CÔNG NGHỆ THÁI SƠN',
-                        'seller_tax_code' => $request->seller_tax_code ?? '0101300842',
-                        'seller_address' => $request->seller_address ?? 'B1-Tuổi trẻ, Hoàng Quốc Việt, Cầu Giấy, Hà Nội',
-                        'seller_phone' => $request->seller_phone ?? '04.37545222',
+                        'seller_name' => $sellerName,
+                        'seller_tax_code' => $sellerTaxCode,
+                        'seller_address' => $sellerAddress,
+                        'seller_phone' => $sellerPhone,
                         'customer_id' => $customerId,
                         'buyer_name' => $request->buyer_name,
                         'company_name' => $request->company_name,

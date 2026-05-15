@@ -7,6 +7,7 @@ use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\ExportController;
+use App\Http\Controllers\ReportController;
 
 // [1] TRANG CHỦ: Trả về danh sách sản phẩm đại diện (Gom nhóm thông minh)
 Route::get('/', [ProductController::class, 'index'])->name('products.index');
@@ -20,6 +21,8 @@ Route::post('/import/store', [ProductController::class, 'storeManual'])->name('p
 
 // [4] THỐNG KÊ: Trang Dashboard 4 ô số liệu
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::get('/reports/revenue', [ReportController::class, 'revenue'])->name('reports.revenue');
 
 // [5] QUẢN LÝ DANH MỤC
 Route::resource('product-catalogs', ProductCatalogController::class);
