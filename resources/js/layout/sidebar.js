@@ -4,11 +4,60 @@ document.addEventListener('DOMContentLoaded', function () {
     const contentArea = document.getElementById('content');
     const sidebar = document.getElementById('sidebar');
 
-    function closeSidebarSubmenus() {
-        if (!sidebar || !window.bootstrap) return;
+    function getCollapseInstance(submenu) {
+        if (!window.bootstrap || !submenu) return null;
 
-        sidebar.querySelectorAll('.collapse.show').forEach(submenu => {
-            window.bootstrap.Collapse.getOrCreateInstance(submenu, { toggle: false }).hide();
+        return window.bootstrap.Collapse.getOrCreateInstance(submenu, { toggle: false });
+    }
+
+    function getTriggerFor(submenu) {
+        if (!sidebar || !submenu || !submenu.id) return null;
+
+        return sidebar.querySelector(`.sidebar-collapse-toggle[data-sidebar-target="#${submenu.id}"]`);
+    }
+
+    function setTriggerState(trigger, isOpen) {
+        if (!trigger) return;
+
+        trigger.classList.toggle('collapsed', !isOpen);
+        trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    function hideSubmenu(submenu) {
+        const collapse = getCollapseInstance(submenu);
+        if (!collapse) return;
+
+        collapse.hide();
+        setTriggerState(getTriggerFor(submenu), false);
+
+        submenu.querySelectorAll('.collapse.show').forEach(childSubmenu => {
+            const childCollapse = getCollapseInstance(childSubmenu);
+            if (childCollapse) childCollapse.hide();
+            setTriggerState(getTriggerFor(childSubmenu), false);
+        });
+    }
+
+    function showSubmenu(submenu) {
+        const collapse = getCollapseInstance(submenu);
+        if (!collapse) return;
+
+        collapse.show();
+        setTriggerState(getTriggerFor(submenu), true);
+    }
+
+    function closeSidebarSubmenus() {
+        if (!sidebar) return;
+
+        sidebar.querySelectorAll('.collapse.show').forEach(hideSubmenu);
+    }
+
+    function closeTopLevelSiblings(targetSubmenu) {
+        if (!sidebar || !targetSubmenu) return;
+
+        sidebar.querySelectorAll('#sidebarMenu > .nav-item > .collapse.show').forEach(openSubmenu => {
+            if (openSubmenu !== targetSubmenu) {
+                hideSubmenu(openSubmenu);
+            }
         });
     }
 
@@ -34,32 +83,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (sidebar) {
-        sidebar.querySelectorAll('[data-bs-toggle="collapse"][href^="#"]').forEach(trigger => {
+        sidebar.querySelectorAll('.sidebar-collapse-toggle').forEach(trigger => {
             trigger.addEventListener('click', function (e) {
-                if (!window.bootstrap) return;
-
-                const target = document.querySelector(this.getAttribute('href'));
-                if (!target) return;
-
                 e.preventDefault();
                 e.stopPropagation();
 
-                const targetCollapse = window.bootstrap.Collapse.getOrCreateInstance(target, { toggle: false });
-                if (target.classList.contains('show')) {
-                    targetCollapse.hide();
+                const targetSelector = this.getAttribute('data-sidebar-target') || this.getAttribute('href');
+                const targetSubmenu = targetSelector ? document.querySelector(targetSelector) : null;
+                if (!targetSubmenu) return;
+
+                if (targetSubmenu.classList.contains('show')) {
+                    hideSubmenu(targetSubmenu);
                     return;
                 }
 
-                const parentSelector = target.getAttribute('data-bs-parent');
-                if (parentSelector) {
-                    document.querySelectorAll(`${parentSelector} .collapse.show`).forEach(openSubmenu => {
-                        if (openSubmenu !== target) {
-                            window.bootstrap.Collapse.getOrCreateInstance(openSubmenu, { toggle: false }).hide();
-                        }
-                    });
+                if (targetSubmenu.matches('#sidebarMenu > .nav-item > .collapse')) {
+                    closeTopLevelSiblings(targetSubmenu);
                 }
 
-                targetCollapse.show();
+                showSubmenu(targetSubmenu);
             });
         });
 

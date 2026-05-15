@@ -147,11 +147,11 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#userSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="userSubmenu">
+                    <a href="#userSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#userSubmenu" role="button" aria-expanded="false" aria-controls="userSubmenu">
                         <div><i class="bi bi-people-fill menu-icon"></i>Quản lý người dùng</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="userSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="userSubmenu">
                         <li><a href="#" class="nav-link">Danh sách user</a></li>
                         <li><a href="#" class="nav-link">Phân quyền</a></li>
                     </ul>
@@ -170,11 +170,11 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#productSubmenu" class="nav-link collapsed {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="productSubmenu">
+                    <a href="#productSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') ? 'active' : '' }}" data-sidebar-target="#productSubmenu" role="button" aria-expanded="false" aria-controls="productSubmenu">
                         <div><i class="bi bi-box-seam-fill menu-icon"></i>Quản lý sản phẩm</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="productSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="productSubmenu">
                         <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
                         <li><a href="#" class="nav-link">Danh mục</a></li>
                         <li><a href="#" class="nav-link">Bảng giá</a></li>
@@ -182,18 +182,18 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#warehouseSubmenu" class="nav-link collapsed {{ request()->is('import*') || request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
+                    <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
                         <div><i class="bi bi-archive-fill menu-icon"></i>Quản lý kho</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="warehouseSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="warehouseSubmenu">
                         <li><a href="{{ url('/import') }}" class="nav-link {{ request()->is('import') ? 'active' : '' }}">Nhập kho</a></li>
                         <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
                         <li><a href="#" class="nav-link">Truy vết Serial</a></li>
                         <li><a href="#" class="nav-link">Tồn kho</a></li>
                         
                         <li class="nav-item">
-                            <a href="#changeInfoSubmenu" class="nav-link collapsed {{ request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="changeInfoSubmenu" style="padding-left: 1.85rem; font-size: 0.85rem;">
+                            <a href="#changeInfoSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#changeInfoSubmenu" role="button" aria-expanded="false" aria-controls="changeInfoSubmenu" style="padding-left: 1.85rem; font-size: 0.85rem;">
                                 <div><i class="bi bi-pencil-square menu-icon" style="font-size: 1rem;"></i>Thay đổi thông tin kho</div>
                                 <i class="bi bi-chevron-down arrow-icon" style="font-size: 0.65rem;"></i>
                             </a>
@@ -219,11 +219,11 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#financeSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="financeSubmenu">
+                    <a href="#financeSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#financeSubmenu" role="button" aria-expanded="false" aria-controls="financeSubmenu">
                         <div><i class="bi bi-cash-stack menu-icon"></i>Quản lý thu chi</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="financeSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="financeSubmenu">
                         <li><a href="#" class="nav-link">Phiếu thu</a></li>
                         <li><a href="#" class="nav-link">Phiếu chi</a></li>
                     </ul>
@@ -236,22 +236,22 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#reportSubmenu" class="nav-link collapsed {{ request()->routeIs('reports.*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="reportSubmenu">
+                    <a href="#reportSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('reports.*') ? 'active' : '' }}" data-sidebar-target="#reportSubmenu" role="button" aria-expanded="false" aria-controls="reportSubmenu">
                         <div><i class="bi bi-bar-chart-line-fill menu-icon"></i>Báo cáo - Thống kê</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="reportSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="reportSubmenu">
                         <li><a href="{{ route('reports.revenue') }}" class="nav-link {{ request()->routeIs('reports.revenue') ? 'active' : '' }}">Doanh thu</a></li>
                         <li><a href="#" class="nav-link">Nhập xuất tồn</a></li>
                     </ul>
                 </li>
 
                 <li class="nav-item">
-                    <a href="#manufactureSubmenu" class="nav-link collapsed" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="manufactureSubmenu">
+                    <a href="#manufactureSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#manufactureSubmenu" role="button" aria-expanded="false" aria-controls="manufactureSubmenu">
                         <div><i class="bi bi-building-fill menu-icon"></i>Quản lý sản xuất</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu" id="manufactureSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="manufactureSubmenu">
                         <li><a href="#" class="nav-link">Lệnh sản xuất</a></li>
                         <li><a href="#" class="nav-link">Tiến độ</a></li>
                     </ul>

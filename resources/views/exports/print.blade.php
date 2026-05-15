@@ -159,13 +159,19 @@
 
     <div class="invoice-preview-container">
         @foreach($allVouchers as $index => $v)
+            @php
+                $sellerName = $v->seller_name ?: config('app.name', 'WMS');
+                $sellerAddress = $v->seller_address ?: '..................................................................';
+                $sellerPhone = $v->seller_phone ?: '................................';
+                $sellerTaxCode = $v->seller_tax_code ?: '................................';
+            @endphp
             <page size="A4" class="{{ $index > 0 ? 'page-break' : '' }}">
                 
                 <div class="row" style="font-size: 13px;">
                     <div class="col-8">
-                        <h6 class="fw-bold mb-1" style="font-size: 14px;">CÔNG TY TNHH PHÁT TRIỂN CÔNG NGHỆ THÁI SƠN</h6>
-                        <p class="mb-1"><strong>Địa chỉ:</strong> B1-Tuổi trẻ, Hoàng Quốc Việt, Cầu Giấy, Hà Nội</p>
-                        <p class="mb-1"><strong>Điện thoại:</strong> 04.37545222 - <strong>MST:</strong> 0101300842</p>
+                        <h6 class="fw-bold mb-1" style="font-size: 14px;">{{ $sellerName }}</h6>
+                        <p class="mb-1"><strong>Địa chỉ:</strong> {{ $sellerAddress }}</p>
+                        <p class="mb-1"><strong>Điện thoại:</strong> {{ $sellerPhone }} - <strong>MST:</strong> {{ $sellerTaxCode }}</p>
                     </div>
                     <div class="col-4 text-end">
                         <p class="mb-1">Số: <strong>{{ $v->export_code ?? $v->id }}</strong></p>
