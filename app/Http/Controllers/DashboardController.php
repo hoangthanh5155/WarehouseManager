@@ -17,7 +17,7 @@ class DashboardController extends Controller
         $importedToday = Product::whereDate('created_at', Carbon::today())->count();
 
         // 3. Số lượng máy đã xuất hôm nay
-        $exportedToday = Product::where('status', 0) // Giả định status = 0 là đã xuất
+        $exportedToday = Product::where('status', 2) // status = 2 là đã xuất
             ->whereDate('updated_at', Carbon::today())
             ->count();
 

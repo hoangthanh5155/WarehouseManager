@@ -170,12 +170,12 @@
                 </li>
 
                 <li class="nav-item">
-                    <a href="#productSubmenu" class="nav-link collapsed {{ request()->is('tra-cuu*') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="productSubmenu">
+                    <a href="#productSubmenu" class="nav-link collapsed {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="false" aria-controls="productSubmenu">
                         <div><i class="bi bi-box-seam-fill menu-icon"></i>Quản lý sản phẩm</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu {{ request()->is('tra-cuu*') ? 'show' : '' }}" id="productSubmenu" data-bs-parent="#sidebarMenu">
-                        <li><a href="{{ url('/tra-cuu') }}" class="nav-link {{ request()->is('tra-cuu') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
+                    <ul class="collapse submenu" id="productSubmenu" data-bs-parent="#sidebarMenu">
+                        <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
                         <li><a href="#" class="nav-link">Danh mục</a></li>
                         <li><a href="#" class="nav-link">Bảng giá</a></li>
                     </ul>
@@ -186,7 +186,7 @@
                         <div><i class="bi bi-archive-fill menu-icon"></i>Quản lý kho</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
-                    <ul class="collapse submenu {{ request()->is('import*') || request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'show' : '' }}" id="warehouseSubmenu" data-bs-parent="#sidebarMenu">
+                    <ul class="collapse submenu" id="warehouseSubmenu" data-bs-parent="#sidebarMenu">
                         <li><a href="{{ url('/import') }}" class="nav-link {{ request()->is('import') ? 'active' : '' }}">Nhập kho</a></li>
                         <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
                         <li><a href="#" class="nav-link">Truy vết Serial</a></li>
@@ -197,7 +197,7 @@
                                 <div><i class="bi bi-pencil-square menu-icon" style="font-size: 1rem;"></i>Thay đổi thông tin kho</div>
                                 <i class="bi bi-chevron-down arrow-icon" style="font-size: 0.65rem;"></i>
                             </a>
-                            <ul class="collapse submenu {{ request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'show' : '' }}" id="changeInfoSubmenu">
+                            <ul class="collapse submenu" id="changeInfoSubmenu">
                                 <li>
                                     <a href="{{ url('/product-catalogs') }}" class="nav-link {{ request()->is('product-catalogs*') ? 'active' : '' }}" style="padding-left: 2.85rem; font-size: 0.8rem;">
                                         <i class="bi bi-dot me-1"></i>Sản phẩm

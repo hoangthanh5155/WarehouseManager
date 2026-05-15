@@ -12,15 +12,47 @@ use Illuminate\Support\Facades\DB;
 class ProductController extends Controller
 {
     // [1] Trang chủ danh sách sản phẩm
-    public function index()
+    public function index(Request $request)
     {
-        $products = Product::select('product_catalog_id', 'supplier_id', 'location_id', DB::raw('count(*) as total_qty'))
-            ->with(['supplier', 'location', 'productCatalog'])
-            ->groupBy('product_catalog_id', 'supplier_id', 'location_id')
-            ->latest('total_qty')
-            ->paginate(20);
+        $supplierId = $request->query('supplier_id');
+        $sort = $request->query('sort', 'featured');
+        $allowedSorts = ['featured', 'newest', 'stock_desc', 'stock_asc', 'price_asc', 'price_desc'];
+        if (!in_array($sort, $allowedSorts, true)) {
+            $sort = 'featured';
+        }
 
-        return view('products.index', compact('products'));
+        $suppliers = Supplier::orderBy('name')->get();
+
+        $productsQuery = Product::query()
+            ->leftJoin('product_catalogs as catalogs', 'products.product_catalog_id', '=', 'catalogs.id')
+            ->select(
+                'products.product_catalog_id',
+                'products.supplier_id',
+                'products.location_id',
+                DB::raw('count(*) as total_qty'),
+                DB::raw('MAX(products.created_at) as latest_imported_at'),
+                DB::raw('MAX(catalogs.retail_price) as sort_retail_price')
+            )
+            ->with(['supplier', 'location', 'productCatalog'])
+            ->where('products.status', 1)
+            ->when($supplierId, function ($query, $supplierId) {
+                return $query->where('products.supplier_id', $supplierId);
+            })
+            ->groupBy('products.product_catalog_id', 'products.supplier_id', 'products.location_id');
+
+        match ($sort) {
+            'newest' => $productsQuery->orderByDesc('latest_imported_at'),
+            'stock_asc' => $productsQuery->orderBy('total_qty', 'asc'),
+            'price_asc' => $productsQuery->orderBy('sort_retail_price', 'asc'),
+            'price_desc' => $productsQuery->orderByDesc('sort_retail_price'),
+            default => $productsQuery->orderByDesc('total_qty'),
+        };
+
+        $products = $productsQuery
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('products.index', compact('products', 'suppliers', 'supplierId', 'sort'));
     }
 
     // [2] Xem chi tiết 1 sản phẩm & Cập nhật giá đa cấp thông minh theo %
@@ -48,6 +80,7 @@ class ProductController extends Controller
         }
 
         $items = Product::where('product_catalog_id', $id)
+            ->where('status', 1)
             ->with(['location', 'supplier'])
             ->latest()
             ->get();
@@ -223,6 +256,7 @@ class ProductController extends Controller
 
         // Tự động tìm vị trí kệ của sản phẩm thực tế đã nhập gần nhất
         $lastProduct = Product::where('product_catalog_id', $catalog->id)
+            ->where('status', 1)
             ->whereNotNull('location_id')
             ->where('location_id', '>', 0)
             ->with('location')

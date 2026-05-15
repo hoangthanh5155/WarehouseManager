@@ -1,22 +1,29 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('productSearch');
     const productCards = document.querySelectorAll('.product-card');
+    const emptyState = document.getElementById('clientSearchEmpty');
 
-    if (searchInput) {
-        // Lắng nghe các sự kiện gõ phím, click hoặc thay đổi trên ô tìm kiếm
-        ['input', 'keyup', 'change'].forEach(evt => {
-            searchInput.addEventListener(evt, function() {
-                const value = this.value.toLowerCase().trim();
+    if (!searchInput) return;
 
-                productCards.forEach(card => {
-                    const searchText = card.getAttribute('data-search') || '';
-                    if (searchText.includes(value)) {
-                        card.style.display = '';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
+    ['input', 'keyup', 'change'].forEach(eventName => {
+        searchInput.addEventListener(eventName, function () {
+            const value = this.value.toLowerCase().trim();
+            let visibleCount = 0;
+
+            productCards.forEach(card => {
+                const searchText = card.getAttribute('data-search') || '';
+
+                if (searchText.includes(value)) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
             });
+
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', value === '' || visibleCount > 0);
+            }
         });
-    }
+    });
 });
