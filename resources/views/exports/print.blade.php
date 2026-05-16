@@ -188,7 +188,7 @@
                         <div class="col-12"><p class="mb-1"><strong>Khách hàng:</strong> {{ $v->buyer_name ?? '..................................................................' }}</p></div>
                         <div class="col-12"><p class="mb-1"><strong>Đơn vị:</strong> {{ $v->company_name ?? '..................................................................' }}</p></div>
                         <div class="col-12"><p class="mb-1"><strong>Địa chỉ:</strong> {{ $v->address ?? '..................................................................' }}</p></div>
-                        <div class="col-12"><p class="mb-1"><strong>SĐT / MST:</strong> {{ $v->tax_code ?? '................................................' }}</p></div>
+                        <div class="col-12"><p class="mb-1"><strong>SĐT:</strong> {{ $v->tax_code ?? '................................................' }}</p></div>
                     </div>
                 </div>
 

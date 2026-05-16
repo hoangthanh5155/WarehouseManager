@@ -136,12 +136,12 @@
         <div class="row g-2">
             <div class="col-12 col-md-6">
                 <label class="small text-muted fw-bold mb-1">Người mua hàng:</label>
-                <input type="text" id="buyerName" class="form-control" placeholder="Ví dụ: Lê Bảo An">
+                <input type="text" id="buyerName" class="form-control" placeholder="Tên khách hàng ">
             </div>
 
             <div class="col-12 col-md-6">
                 <label class="small text-muted fw-bold mb-1">Tên đơn vị (nếu có):</label>
-                <input type="text" id="companyName" class="form-control" placeholder="Ví dụ: Công ty TNHH T&T An Khang">
+                <input type="text" id="companyName" class="form-control" placeholder="Tên tổ chức ">
             </div>
 
             <div class="col-12 col-md-8">
@@ -150,8 +150,8 @@
             </div>
 
             <div class="col-12 col-md-4">
-                <label class="small text-muted fw-bold mb-1">Mã số thuế / SĐT:</label>
-                <input type="text" id="taxCode" class="form-control" placeholder="Số điện thoại hoặc MST">
+                <label class="small text-muted fw-bold mb-1">SĐT:</label>
+                <input type="text" id="taxCode" class="form-control" placeholder="Số điện thoại khách hàng">
             </div>
         </div>
     </div>
@@ -268,7 +268,7 @@
                                 <input type="text" name="address" value="{{ $recentVoucher->address }}" class="form-control">
                             </div>
                             <div class="col-md-4">
-                                <label class="small text-muted fw-bold mb-1">MST / SĐT</label>
+                                <label class="small text-muted fw-bold mb-1">SĐT</label>
                                 <input type="text" name="tax_code" value="{{ $recentVoucher->tax_code }}" class="form-control">
                             </div>
                         </div>
