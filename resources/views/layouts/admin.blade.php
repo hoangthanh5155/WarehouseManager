@@ -142,7 +142,7 @@
             <ul class="sidebar-nav" id="sidebarMenu">
                 <li class="nav-item">
                     <a href="{{ url('/dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
-                        <div><i class="bi bi-grid-1x2-fill menu-icon"></i>Thống kê</div>
+                        <div><i class="bi bi-grid-1x2-fill menu-icon"></i>Tổng quan</div>
                     </a>
                 </li>
 

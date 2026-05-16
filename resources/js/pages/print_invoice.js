@@ -1,8 +1,10 @@
 window.addEventListener('load', function () {
-    // Đợi layout ổn định rồi tự động mở trình in ấn
-    setTimeout(function () {
-        window.print();
-    }, 500);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('print') === '1') {
+        setTimeout(function () {
+            window.print();
+        }, 500);
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {

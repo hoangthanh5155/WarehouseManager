@@ -38,6 +38,7 @@ Route::get('/smart-suggestion', [ProductController::class, 'smartSuggestion'])->
 
 // Giao diện tạo đơn xuất kho (Đơn chính + Đơn mở rộng)
 Route::get('/export', [ExportController::class, 'index'])->name('export.index');
+Route::patch('/export/vouchers/{voucher}/metadata', [ExportController::class, 'updateMetadata'])->name('export.metadata.update');
 
 // Giao diện in hóa đơn A4 chuẩn phôi Thái Sơn
 Route::get('/export/print/{id}', [ExportController::class, 'print'])->name('export.print');

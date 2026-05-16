@@ -27,7 +27,11 @@ class ExportController extends Controller
             ->get();
 
             // 💡 ĐÃ SỬA: Trỏ chính xác vào views/exports/create.blade.php
-            return view('exports.create', compact('customers', 'productCatalogs'));
+            $recentVouchers = ExportVoucher::orderByDesc('exported_at')
+                ->limit(8)
+                ->get();
+
+            return view('exports.create', compact('customers', 'productCatalogs', 'recentVouchers'));
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -260,5 +264,20 @@ class ExportController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Không tìm thấy hóa đơn cần in: ' . $e->getMessage());
         }
+    }
+
+    public function updateMetadata(Request $request, ExportVoucher $voucher)
+    {
+        $validated = $request->validate([
+            'buyer_name' => ['nullable', 'string', 'max:255'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'tax_code' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string'],
+        ]);
+
+        $voucher->update($validated);
+
+        return redirect()->route('export.index')->with('success', 'Đã cập nhật thông tin hóa đơn.');
     }
 }

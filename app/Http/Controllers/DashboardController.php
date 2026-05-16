@@ -2,33 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ExportVoucher;
 use App\Models\Product;
-use App\Models\Location;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Tổng số máy đang có trong kho (status = 1)
+        $monthStart = Carbon::now()->startOfMonth();
+        $monthEnd = Carbon::now()->endOfMonth();
+
+        $monthlyRevenue = (float) ExportVoucher::whereBetween('exported_at', [$monthStart, $monthEnd])
+            ->sum('total_amount');
+
         $totalInStock = Product::where('status', 1)->count();
 
-        // 2. Số lượng máy nhập mới hôm nay
-        $importedToday = Product::whereDate('created_at', Carbon::today())->count();
+        $inventoryValue = (float) Product::query()
+            ->join('product_catalogs', 'products.product_catalog_id', '=', 'product_catalogs.id')
+            ->where('products.status', 1)
+            ->sum('product_catalogs.wholesale_price');
 
-        // 3. Số lượng máy đã xuất hôm nay
-        $exportedToday = Product::where('status', 2) // status = 2 là đã xuất
-            ->whereDate('updated_at', Carbon::today())
+        $lowStockThreshold = 3;
+        $lowStockProducts = Product::query()
+            ->select('product_catalog_id', DB::raw('count(*) as stock_count'))
+            ->where('status', 1)
+            ->groupBy('product_catalog_id')
+            ->having('stock_count', '<=', $lowStockThreshold)
+            ->get()
             ->count();
 
-        // 4. Tổng số vị trí kệ
-        $totalLocations = Location::count();
+        $todayRevenue = (float) ExportVoucher::whereDate('exported_at', Carbon::today())->sum('total_amount');
+        $monthlyGrossProfit = (float) ExportVoucher::whereBetween('exported_at', [$monthStart, $monthEnd])
+            ->selectRaw('COALESCE(SUM(total_amount - total_cost), 0) as gross_profit')
+            ->value('gross_profit');
+        $monthlyOrders = ExportVoucher::whereBetween('exported_at', [$monthStart, $monthEnd])->count();
+
+        $recentVouchers = ExportVoucher::orderByDesc('exported_at')->limit(6)->get();
+        $recentImports = Product::with(['productCatalog', 'supplier', 'location'])
+            ->latest()
+            ->limit(6)
+            ->get();
 
         return view('dashboard.index', compact(
-            'totalInStock', 
-            'importedToday', 
-            'exportedToday', 
-            'totalLocations'
+            'monthlyRevenue',
+            'totalInStock',
+            'inventoryValue',
+            'lowStockProducts',
+            'lowStockThreshold',
+            'todayRevenue',
+            'monthlyGrossProfit',
+            'monthlyOrders',
+            'recentVouchers',
+            'recentImports'
         ));
     }
 }

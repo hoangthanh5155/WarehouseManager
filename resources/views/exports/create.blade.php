@@ -1,12 +1,90 @@
 @extends('layouts.admin')
 
-@section('title', 'Xuất kho hàng hóa - POS BanHang')
+@section('title', 'Xuất kho - POS BanHang')
 
 @section('content')
 <div class="container-fluid px-2 mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
-        <h4 class="fw-bold text-dark m-0">📦 XUẤT KHO HÀNG HÓA</h4>
-        <span class="badge bg-primary px-3 py-2 fs-6">Hôm nay: {{ date('d/m/Y') }}</span>
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-3 mt-2">
+        <div>
+            <h4 class="fw-bold text-dark m-0">XUẤT KHO</h4>
+            <div class="text-muted small">Tạo phiếu xuất kho và in hóa đơn</div>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+            <button class="btn btn-sm btn-outline-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#recentInvoicesPanel" aria-expanded="false" aria-controls="recentInvoicesPanel">
+                <i class="bi bi-receipt me-1"></i> Hóa đơn gần đây
+                <i class="bi bi-chevron-down ms-1"></i>
+            </button>
+            <span class="badge bg-primary px-3 py-2 fs-6">Hôm nay: {{ date('d/m/Y') }}</span>
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
+    @endif
+
+    <div class="collapse mb-3" id="recentInvoicesPanel">
+    <div class="card border-0 shadow-sm rounded-3 p-3 mb-0 bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold text-dark m-0"><i class="bi bi-receipt me-1"></i> Hóa đơn gần đây</h6>
+            <a href="{{ route('reports.revenue') }}" class="btn btn-sm btn-outline-secondary fw-bold">Xem báo cáo</a>
+        </div>
+
+        <div class="table-responsive d-none d-md-block">
+            <table class="table table-hover align-middle m-0" style="font-size: 0.9rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã hóa đơn</th>
+                        <th>Khách hàng</th>
+                        <th class="text-end">Tổng tiền</th>
+                        <th>Ngày xuất</th>
+                        <th class="text-end">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($recentVouchers ?? [] as $recentVoucher)
+                        <tr>
+                            <td class="fw-bold text-primary">{{ $recentVoucher->export_code }}</td>
+                            <td>
+                                <div class="fw-bold">{{ $recentVoucher->company_name ?: $recentVoucher->buyer_name ?: 'N/A' }}</div>
+                                @if($recentVoucher->company_name && $recentVoucher->buyer_name)
+                                    <small class="text-muted">{{ $recentVoucher->buyer_name }}</small>
+                                @endif
+                            </td>
+                            <td class="text-end fw-bold">{{ number_format($recentVoucher->total_amount) }} đ</td>
+                            <td class="text-nowrap">{{ optional($recentVoucher->exported_at)->format('d/m/Y H:i') }}</td>
+                            <td class="text-end text-nowrap">
+                                <a href="{{ route('export.print', $recentVoucher->id) }}" class="btn btn-sm btn-outline-primary fw-bold">Xem hóa đơn</a>
+                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa thông tin khách</button>
+                                <a href="{{ route('export.print', ['id' => $recentVoucher->id, 'print' => 1]) }}" class="btn btn-sm btn-primary fw-bold">In lại</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="text-center text-muted py-3">Chưa có hóa đơn gần đây.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <div class="d-md-none d-flex flex-column gap-2">
+            @forelse($recentVouchers ?? [] as $recentVoucher)
+                <div class="border rounded-3 p-3 bg-light">
+                    <div class="d-flex justify-content-between gap-2 mb-1">
+                        <strong class="text-primary">{{ $recentVoucher->export_code }}</strong>
+                        <span class="fw-bold text-danger">{{ number_format($recentVoucher->total_amount) }} đ</span>
+                    </div>
+                    <div class="fw-bold text-dark">{{ $recentVoucher->company_name ?: $recentVoucher->buyer_name ?: 'N/A' }}</div>
+                    <div class="text-muted small mb-2">{{ optional($recentVoucher->exported_at)->format('d/m/Y H:i') }}</div>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('export.print', $recentVoucher->id) }}" class="btn btn-sm btn-outline-primary fw-bold flex-fill">Xem</a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa</button>
+                        <a href="{{ route('export.print', ['id' => $recentVoucher->id, 'print' => 1]) }}" class="btn btn-sm btn-primary fw-bold flex-fill">In lại</a>
+                    </div>
+                </div>
+            @empty
+                <div class="text-center text-muted py-3">Chưa có hóa đơn gần đây.</div>
+            @endforelse
+        </div>
+    </div>
     </div>
 
     <div class="card border-0 shadow-sm rounded-3 p-3 mb-3 bg-white">
@@ -157,6 +235,54 @@
         </div>
     </div>
 </div>
+
+@foreach($recentVouchers ?? [] as $recentVoucher)
+    <div class="modal fade" id="editVoucherModal{{ $recentVoucher->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ route('export.metadata.update', $recentVoucher) }}" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-header bg-light">
+                        <div>
+                            <h5 class="modal-title fw-bold">Sửa thông tin khách</h5>
+                            <div class="text-muted small">{{ $recentVoucher->export_code }} - chỉ sửa thông tin người mua, không sửa hàng hóa hoặc tồn kho.</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold mb-1">Người mua</label>
+                                <input type="text" name="buyer_name" value="{{ $recentVoucher->buyer_name }}" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold mb-1">Công ty</label>
+                                <input type="text" name="company_name" value="{{ $recentVoucher->company_name }}" class="form-control">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="small text-muted fw-bold mb-1">Địa chỉ khách</label>
+                                <input type="text" name="address" value="{{ $recentVoucher->address }}" class="form-control">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="small text-muted fw-bold mb-1">MST / SĐT</label>
+                                <input type="text" name="tax_code" value="{{ $recentVoucher->tax_code }}" class="form-control">
+                            </div>
+                            <div class="col-12">
+                                <label class="small text-muted fw-bold mb-1">Ghi chú</label>
+                                <textarea name="note" class="form-control" rows="2">{{ $recentVoucher->note }}</textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-primary fw-bold">Lưu thông tin khách</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
 
 <div class="modal fade" id="verifySnModal" tabindex="-1" aria-labelledby="verifySnModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">

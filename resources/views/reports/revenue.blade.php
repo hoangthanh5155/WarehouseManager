@@ -237,7 +237,7 @@
                             <td class="text-nowrap">{{ optional($voucher->exported_at)->format('d/m/Y H:i') }}</td>
                             <td class="text-end">
                                 <a href="{{ route('export.print', $voucher->id) }}" class="btn btn-sm btn-outline-primary fw-bold">
-                                    <i class="bi bi-printer me-1"></i> In lại
+                                    <i class="bi bi-eye me-1"></i> Xem hóa đơn
                                 </a>
                             </td>
                         </tr>
@@ -285,7 +285,7 @@
                     </div>
 
                     <a href="{{ route('export.print', $voucher->id) }}" class="btn btn-outline-primary btn-sm fw-bold w-100">
-                        <i class="bi bi-printer me-1"></i> In lại
+                        <i class="bi bi-eye me-1"></i> Xem hóa đơn
                     </a>
                 </div>
             @empty
