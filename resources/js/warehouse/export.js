@@ -8,6 +8,33 @@ document.addEventListener('DOMContentLoaded', function () {
         verifySnModal = new bootstrap.Modal(verifySnModalElement);
     }
 
+    const recentInvoicesToggle = document.getElementById('recentInvoicesToggle');
+    const exportWorkflowTab = document.getElementById('exportWorkflowTab');
+    const recentInvoicesTab = document.getElementById('recentInvoicesTab');
+    const recentInvoicesToggleLabel = recentInvoicesToggle?.querySelector('[data-recent-toggle-label]');
+
+    function setExportPageTab(showRecentInvoices) {
+        if (!recentInvoicesToggle || !exportWorkflowTab || !recentInvoicesTab) return;
+
+        exportWorkflowTab.classList.toggle('show', !showRecentInvoices);
+        exportWorkflowTab.classList.toggle('active', !showRecentInvoices);
+        recentInvoicesTab.classList.toggle('show', showRecentInvoices);
+        recentInvoicesTab.classList.toggle('active', showRecentInvoices);
+        recentInvoicesToggle.classList.toggle('btn-primary', showRecentInvoices);
+        recentInvoicesToggle.classList.toggle('btn-outline-primary', !showRecentInvoices);
+        recentInvoicesToggle.setAttribute('aria-pressed', showRecentInvoices ? 'true' : 'false');
+
+        if (recentInvoicesToggleLabel) {
+            recentInvoicesToggleLabel.textContent = showRecentInvoices ? 'Quay lại xuất kho' : 'Hóa đơn gần đây';
+        }
+    }
+
+    if (recentInvoicesToggle) {
+        recentInvoicesToggle.addEventListener('click', function () {
+            setExportPageTab(!recentInvoicesTab.classList.contains('active'));
+        });
+    }
+
     function getCustomerType() {
         return document.querySelector('input[name="customer_type"]:checked').value;
     }

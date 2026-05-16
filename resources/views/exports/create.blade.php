@@ -10,9 +10,9 @@
             <div class="text-muted small">Tạo phiếu xuất kho và in hóa đơn</div>
         </div>
         <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-            <button class="btn btn-sm btn-outline-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#recentInvoicesPanel" aria-expanded="false" aria-controls="recentInvoicesPanel">
-                <i class="bi bi-receipt me-1"></i> Hóa đơn gần đây
-                <i class="bi bi-chevron-down ms-1"></i>
+            <button class="btn btn-sm btn-outline-primary fw-bold" type="button" id="recentInvoicesToggle" aria-pressed="false">
+                <i class="bi bi-receipt me-1"></i>
+                <span data-recent-toggle-label>Hóa đơn gần đây</span>
             </button>
             <span class="badge bg-primary px-3 py-2 fs-6">Hôm nay: {{ date('d/m/Y') }}</span>
         </div>
@@ -22,11 +22,11 @@
         <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
     @endif
 
-    <div class="collapse mb-3" id="recentInvoicesPanel">
+    <div class="tab-content" id="exportPageTabsContent">
+    <div class="tab-pane fade" id="recentInvoicesTab" role="tabpanel" tabindex="0">
     <div class="card border-0 shadow-sm rounded-3 p-3 mb-0 bg-white">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 class="fw-bold text-dark m-0"><i class="bi bi-receipt me-1"></i> Hóa đơn gần đây</h6>
-            <a href="{{ route('reports.revenue') }}" class="btn btn-sm btn-outline-secondary fw-bold">Xem báo cáo</a>
         </div>
 
         <div class="table-responsive d-none d-md-block">
@@ -87,6 +87,7 @@
     </div>
     </div>
 
+    <div class="tab-pane fade show active" id="exportWorkflowTab" role="tabpanel" tabindex="0">
     <div class="card border-0 shadow-sm rounded-3 p-3 mb-3 bg-white">
         <div class="row g-3">
             <div class="col-12 col-md-6">
@@ -234,6 +235,8 @@
             </div>
         </div>
     </div>
+    </div>
+    </div>
 </div>
 
 @foreach($recentVouchers ?? [] as $recentVoucher)
@@ -267,10 +270,6 @@
                             <div class="col-md-4">
                                 <label class="small text-muted fw-bold mb-1">MST / SĐT</label>
                                 <input type="text" name="tax_code" value="{{ $recentVoucher->tax_code }}" class="form-control">
-                            </div>
-                            <div class="col-12">
-                                <label class="small text-muted fw-bold mb-1">Ghi chú</label>
-                                <textarea name="note" class="form-control" rows="2">{{ $recentVoucher->note }}</textarea>
                             </div>
                         </div>
                     </div>

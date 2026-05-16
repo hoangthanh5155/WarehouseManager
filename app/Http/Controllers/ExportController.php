@@ -273,7 +273,6 @@ class ExportController extends Controller
             'company_name' => ['nullable', 'string', 'max:255'],
             'address' => ['nullable', 'string', 'max:255'],
             'tax_code' => ['nullable', 'string', 'max:255'],
-            'note' => ['nullable', 'string'],
         ]);
 
         $voucher->update($validated);
