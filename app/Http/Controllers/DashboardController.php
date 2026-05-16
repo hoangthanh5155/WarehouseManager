@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ExportVoucher;
 use App\Models\Product;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -45,6 +46,67 @@ class DashboardController extends Controller
             ->limit(6)
             ->get();
 
+        $sevenDayStart = Carbon::today()->subDays(6)->startOfDay();
+        $sevenDayEnd = Carbon::today()->endOfDay();
+        $sevenDayRevenueRows = ExportVoucher::query()
+            ->selectRaw('DATE(exported_at) as revenue_date, COALESCE(SUM(total_amount), 0) as revenue')
+            ->whereBetween('exported_at', [$sevenDayStart, $sevenDayEnd])
+            ->groupBy(DB::raw('DATE(exported_at)'))
+            ->pluck('revenue', 'revenue_date');
+
+        $sevenDayRevenue = collect(CarbonPeriod::create($sevenDayStart->copy()->startOfDay(), Carbon::today()))
+            ->map(function (Carbon $date) use ($sevenDayRevenueRows) {
+                $key = $date->toDateString();
+
+                return [
+                    'date' => $key,
+                    'label' => $date->format('d/m'),
+                    'weekday' => $date->locale('vi')->isoFormat('dd'),
+                    'revenue' => (float) ($sevenDayRevenueRows[$key] ?? 0),
+                ];
+            });
+
+        $maxSevenDayRevenue = max((float) $sevenDayRevenue->max('revenue'), 1);
+        $sevenDayChartLabels = $sevenDayRevenue->pluck('label')->values();
+        $sevenDayChartValues = $sevenDayRevenue->pluck('revenue')->values();
+        $hasSevenDayRevenue = $sevenDayRevenue->sum('revenue') > 0;
+
+        $stockBaseQuery = Product::query()
+            ->join('product_catalogs', 'products.product_catalog_id', '=', 'product_catalogs.id')
+            ->leftJoin('suppliers', 'product_catalogs.supplier_id', '=', 'suppliers.id')
+            ->where('products.status', 1)
+            ->groupBy(
+                'products.product_catalog_id',
+                'product_catalogs.product_name',
+                'product_catalogs.wholesale_price',
+                'suppliers.name'
+            )
+            ->selectRaw('
+                products.product_catalog_id,
+                product_catalogs.product_name,
+                COALESCE(product_catalogs.wholesale_price, 0) as wholesale_price,
+                suppliers.name as supplier_name,
+                COUNT(*) as stock_count,
+                COUNT(*) * COALESCE(product_catalogs.wholesale_price, 0) as inventory_value
+            ');
+
+        $lowStockList = (clone $stockBaseQuery)
+            ->having('stock_count', '<=', $lowStockThreshold)
+            ->orderBy('stock_count')
+            ->orderBy('product_catalogs.product_name')
+            ->limit(5)
+            ->get();
+
+        $highInventoryValueProducts = (clone $stockBaseQuery)
+            ->orderByDesc('inventory_value')
+            ->limit(5)
+            ->get();
+
+        $highStockProducts = (clone $stockBaseQuery)
+            ->orderByDesc('stock_count')
+            ->limit(5)
+            ->get();
+
         return view('dashboard.index', compact(
             'monthlyRevenue',
             'totalInStock',
@@ -55,7 +117,15 @@ class DashboardController extends Controller
             'monthlyGrossProfit',
             'monthlyOrders',
             'recentVouchers',
-            'recentImports'
+            'recentImports',
+            'sevenDayRevenue',
+            'maxSevenDayRevenue',
+            'sevenDayChartLabels',
+            'sevenDayChartValues',
+            'hasSevenDayRevenue',
+            'lowStockList',
+            'highInventoryValueProducts',
+            'highStockProducts'
         ));
     }
 }
