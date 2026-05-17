@@ -54,7 +54,7 @@ class InternalUserController extends Controller
         $roles = array_keys($request->user()->manageableRoles());
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9_.-]+$/', 'unique:users,name'],
             'display_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
@@ -93,7 +93,6 @@ class InternalUserController extends Controller
         $roles = array_keys($request->user()->manageableRoles());
 
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
             'display_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:30'],

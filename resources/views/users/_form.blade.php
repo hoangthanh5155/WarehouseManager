@@ -3,7 +3,12 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Tên đăng nhập</label>
-        <input type="text" name="name" value="{{ old('name', $managedUser->name ?? '') }}" class="form-control" required>
+        @isset($managedUser)
+            <input type="text" value="{{ $managedUser->name }}" class="form-control bg-light" readonly disabled>
+            <div class="form-text">Tên đăng nhập dùng để đăng nhập và không thể sửa tại đây.</div>
+        @else
+            <input type="text" name="name" value="{{ old('name') }}" class="form-control" required>
+        @endisset
     </div>
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Tên hiển thị</label>
