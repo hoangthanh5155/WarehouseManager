@@ -6,7 +6,8 @@
 @php
     $statusText = $product ? ($product->status == 1 ? 'Còn trong kho' : 'Đã xuất kho') : null;
     $importedAt = $product?->imported_at ?: $product?->created_at;
-    $exportedAt = $product?->exported_at;
+    $exportVoucher = $product?->exportVoucher ?: $fallbackExportVoucher;
+    $exportedAt = $product?->exported_at ?: $exportVoucher?->exported_at;
 @endphp
 
 <div class="container-fluid px-2 px-md-4 mb-5">
@@ -83,10 +84,10 @@
                 <div class="card border-0 shadow-sm rounded-4 h-100">
                     <div class="card-body p-3">
                         <h5 class="fw-bold text-dark">Phiếu xuất</h5>
-                        @if($product->exportVoucher)
-                            <a href="{{ route('export.print', $product->exportVoucher->id) }}" class="fw-bold text-primary">{{ $product->exportVoucher->export_code }}</a>
-                            <div class="text-muted small">{{ optional($product->exportVoucher->exported_at)->format('d/m/Y H:i') }}</div>
-                            <div class="mt-2">{{ $product->exportVoucher->buyer_name ?: $product->exportVoucher->company_name }}</div>
+                        @if($exportVoucher)
+                            <a href="{{ route('export.print', $exportVoucher->id) }}" class="fw-bold text-primary">{{ $exportVoucher->export_code }}</a>
+                            <div class="text-muted small">{{ optional($exportVoucher->exported_at)->format('d/m/Y H:i') }}</div>
+                            <div class="mt-2">{{ $exportVoucher->buyer_name ?: $exportVoucher->company_name }}</div>
                         @else
                             <div class="text-muted">Serial này chưa xuất kho.</div>
                         @endif
@@ -98,6 +99,12 @@
         <div class="card border-0 shadow-sm rounded-4">
             <div class="card-body p-3">
                 <h5 class="fw-bold text-dark mb-3">Timeline</h5>
+                @if(!$historyReady)
+                    <div class="alert alert-light border mb-3">
+                        Timeline audit chưa được khởi tạo. Thông tin bên trên đang lấy từ dữ liệu lõi `products` và `export_vouchers`.
+                    </div>
+                @endif
+
                 @forelse($movements as $movement)
                     <div class="d-flex gap-3 border-bottom py-3">
                         <div class="rounded-circle {{ $movement->movement_type === 'import' ? 'bg-success' : 'bg-primary' }} flex-shrink-0" style="width:12px;height:12px;margin-top:6px;"></div>
@@ -114,7 +121,7 @@
                         </div>
                     </div>
                 @empty
-                    <div class="text-muted">Chưa có movement cho serial này. Có thể cần chạy lệnh backfill.</div>
+                    <div class="text-muted">Chưa có movement cho serial này. Có thể cần chạy migration và backfill để bổ sung timeline audit.</div>
                 @endforelse
             </div>
         </div>

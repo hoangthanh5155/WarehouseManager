@@ -136,18 +136,23 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-nowrap">Mã Serial (SN)</th>
+                                <th class="text-nowrap">Trạng thái</th>
                                 <th class="text-nowrap">Vị trí</th>
                                 <th class="text-nowrap">Nhà cung cấp</th>
                                 <th class="text-nowrap">Ngày nhập</th>
+                                <th class="text-nowrap">Đã tồn kho</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($items as $item)
                                 <tr>
                                     <td>
-                                        <span class="fw-bold text-primary" style="letter-spacing: 0.5px; font-size: 0.95rem;">
+                                        <a href="{{ route('serial.trace.search', ['serial_number' => $item->serial_number]) }}" class="fw-bold text-primary text-decoration-none" style="letter-spacing: 0.5px; font-size: 0.95rem;">
                                             {{ $item->serial_number }}
-                                        </span>
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Còn trong kho</span>
                                     </td>
                                     <td>
                                         <span class="badge bg-light text-primary border px-2 py-1">
@@ -158,10 +163,13 @@
                                     <td class="text-nowrap text-muted" style="font-size: 0.8rem;">
                                         {{ $item->created_at->format('d/m/Y H:i') }}
                                     </td>
+                                    <td class="text-nowrap text-muted" style="font-size: 0.8rem;">
+                                        {{ $item->created_at->diffForHumans(now(), true) }}
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="text-center py-4 text-muted">
+                                    <td colspan="6" class="text-center py-4 text-muted">
                                         <div class="empty-state">
                                             <i class="bi bi-inboxes fs-1 text-secondary"></i>
                                             <div>Sản phẩm này hiện đã hết hàng trong kho.</div>

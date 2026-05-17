@@ -10,6 +10,7 @@ use App\Models\ProductCatalog;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ExportController extends Controller
 {
@@ -280,6 +281,9 @@ class ExportController extends Controller
 
     private function exportSerialItems(array $items, ExportVoucher $voucher, ?int $userId, $exportedAt): void
     {
+        $historyReady = $this->warehouseHistorySchemaReady();
+        $hasExportColumns = Schema::hasColumn('products', 'export_voucher_id') && Schema::hasColumn('products', 'exported_at');
+
         foreach ($items as $item) {
             $serials = collect($item['serials'] ?? [])
                 ->map(fn ($serial) => trim((string) $serial))
@@ -307,29 +311,43 @@ class ExportController extends Controller
             foreach ($serials as $serial) {
                 $product = $products->get($serial);
 
-                StockMovement::create([
-                    'movement_type' => StockMovement::TYPE_EXPORT,
-                    'product_id' => $product->id,
-                    'serial_number' => $product->serial_number,
-                    'product_catalog_id' => $product->product_catalog_id,
-                    'supplier_id' => $product->supplier_id,
-                    'from_status' => 1,
-                    'to_status' => 2,
-                    'from_location_id' => $product->location_id,
-                    'to_location_id' => null,
-                    'export_voucher_id' => $voucher->id,
-                    'user_id' => $userId,
-                    'quantity' => 1,
-                    'occurred_at' => $exportedAt,
-                ]);
+                if ($historyReady) {
+                    StockMovement::create([
+                        'movement_type' => StockMovement::TYPE_EXPORT,
+                        'product_id' => $product->id,
+                        'serial_number' => $product->serial_number,
+                        'product_catalog_id' => $product->product_catalog_id,
+                        'supplier_id' => $product->supplier_id,
+                        'from_status' => 1,
+                        'to_status' => 2,
+                        'from_location_id' => $product->location_id,
+                        'to_location_id' => null,
+                        'export_voucher_id' => $voucher->id,
+                        'user_id' => $userId,
+                        'quantity' => 1,
+                        'occurred_at' => $exportedAt,
+                    ]);
+                }
 
-                $product->update([
+                $updatePayload = [
                     'status' => 2,
-                    'export_voucher_id' => $voucher->id,
-                    'exported_at' => $exportedAt,
                     'updated_at' => $exportedAt,
-                ]);
+                ];
+
+                if ($hasExportColumns) {
+                    $updatePayload['export_voucher_id'] = $voucher->id;
+                    $updatePayload['exported_at'] = $exportedAt;
+                }
+
+                $product->update($updatePayload);
             }
         }
+    }
+
+    private function warehouseHistorySchemaReady(): bool
+    {
+        return Schema::hasTable('stock_movements')
+            && Schema::hasColumn('products', 'export_voucher_id')
+            && Schema::hasColumn('products', 'exported_at');
     }
 }

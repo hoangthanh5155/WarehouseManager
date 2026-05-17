@@ -10,6 +10,7 @@ use App\Models\Location;
 use App\Models\ImportVoucher;
 use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ProductController extends Controller
 {
@@ -196,28 +197,30 @@ class ProductController extends Controller
 
             DB::transaction(function () use ($request, $sn, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, &$importCode) {
                 $now = now();
-                $importVoucher = $this->createImportVoucher(
-                    $supplier_id,
-                    $product_catalog_id,
-                    $location_id,
-                    $wholesale_price,
-                    1,
-                    $request->user()?->id,
-                    $now
-                );
-                $importCode = $importVoucher->import_code;
+                $historyReady = $this->warehouseHistorySchemaReady();
+                $importVoucher = $historyReady
+                    ? $this->createImportVoucher($supplier_id, $product_catalog_id, $location_id, $wholesale_price, 1, $request->user()?->id, $now)
+                    : null;
+                $importCode = $importVoucher?->import_code;
 
-                $product = Product::create([
+                $productPayload = [
                     'product_catalog_id' => $product_catalog_id,
                     'supplier_id' => $supplier_id,
                     'location_id' => $location_id,
                     'serial_number' => $sn,
                     'status' => 1,
-                    'import_voucher_id' => $importVoucher->id,
-                    'imported_at' => $now,
-                ]);
+                ];
 
-                $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+                if ($historyReady) {
+                    $productPayload['import_voucher_id'] = $importVoucher?->id;
+                    $productPayload['imported_at'] = $now;
+                }
+
+                $product = Product::create($productPayload);
+
+                if ($historyReady && $importVoucher) {
+                    $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+                }
             });
 
             return response()->json(['status' => 'success', 'import_code' => $importCode]);
@@ -241,32 +244,34 @@ class ProductController extends Controller
 
             DB::transaction(function () use ($request, $quantity, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, $productName, &$newProducts) {
                 $now = now();
-                $importVoucher = $this->createImportVoucher(
-                    $supplier_id,
-                    $product_catalog_id,
-                    $location_id,
-                    $wholesale_price,
-                    $quantity,
-                    $request->user()?->id,
-                    $now
-                );
+                $historyReady = $this->warehouseHistorySchemaReady();
+                $importVoucher = $historyReady
+                    ? $this->createImportVoucher($supplier_id, $product_catalog_id, $location_id, $wholesale_price, $quantity, $request->user()?->id, $now)
+                    : null;
 
                 for ($i = 0; $i < $quantity; $i++) {
                     do {
                         $code = 'SN' . date('ymd') . strtoupper(bin2hex(random_bytes(3)));
                     } while (Product::where('serial_number', $code)->exists());
 
-                    $product = Product::create([
+                    $productPayload = [
                         'product_catalog_id' => $product_catalog_id,
                         'supplier_id' => $supplier_id,
                         'location_id' => $location_id,
                         'serial_number' => $code,
                         'status' => 1,
-                        'import_voucher_id' => $importVoucher->id,
-                        'imported_at' => $now,
-                    ]);
+                    ];
 
-                    $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+                    if ($historyReady) {
+                        $productPayload['import_voucher_id'] = $importVoucher?->id;
+                        $productPayload['imported_at'] = $now;
+                    }
+
+                    $product = Product::create($productPayload);
+
+                    if ($historyReady && $importVoucher) {
+                        $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+                    }
 
                     $newProducts[] = [
                         'sn' => $code,
@@ -365,5 +370,13 @@ class ProductController extends Controller
         } while (ImportVoucher::where('import_code', $code)->exists());
 
         return $code;
+    }
+
+    private function warehouseHistorySchemaReady(): bool
+    {
+        return Schema::hasTable('stock_movements')
+            && Schema::hasTable('import_vouchers')
+            && Schema::hasColumn('products', 'import_voucher_id')
+            && Schema::hasColumn('products', 'imported_at');
     }
 }
