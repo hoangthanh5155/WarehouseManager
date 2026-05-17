@@ -57,7 +57,7 @@ class ReportController extends Controller
     {
         $user = $request->user();
         $canViewCost = $user?->canViewCostPrices();
-        $startDate = $request->filled('start_date') ? Carbon::parse($request->query('start_date'))->startOfDay() : now()->subDays(6)->startOfDay();
+        $startDate = $request->filled('start_date') ? Carbon::parse($request->query('start_date'))->startOfDay() : now()->startOfMonth();
         $endDate = $request->filled('end_date') ? Carbon::parse($request->query('end_date'))->endOfDay() : now()->endOfDay();
 
         if ($endDate->lt($startDate)) {

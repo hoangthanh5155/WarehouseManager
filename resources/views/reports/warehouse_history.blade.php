@@ -86,7 +86,9 @@
                         </a>
                     </div>
                 @empty
-                    <div class="col-12 text-center text-muted py-3">Không có lịch sử kho trong khoảng thời gian này.</div>
+                    <div class="col-12 text-center text-muted py-3">
+                        Không có dữ liệu trong khoảng thời gian này. Hãy mở rộng khoảng ngày.
+                    </div>
                 @endforelse
             </div>
         </div>
@@ -144,7 +146,9 @@
                     </div>
                 </div>
             @empty
-                <div class="text-center text-muted py-4">Không có dữ liệu chi tiết.</div>
+                <div class="text-center text-muted py-4">
+                    Không có dữ liệu trong khoảng thời gian này. Hãy mở rộng khoảng ngày.
+                </div>
             @endforelse
 
             <div class="mt-3">{{ $movements->links() }}</div>
