@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -67,7 +67,6 @@ class InternalUserController extends Controller
             return back()->withErrors(['role' => 'Hệ thống chỉ cho phép một tài khoản Chủ kho/root.'])->withInput();
         }
 
-        $validated['password'] = Hash::make($validated['password']);
         $validated['created_by'] = $request->user()->id;
         $validated['must_change_password'] = true;
 
@@ -134,13 +133,16 @@ class InternalUserController extends Controller
         return back()->with('success', 'Đã cập nhật trạng thái tài khoản.');
     }
 
-    public function requirePasswordChange(Request $request, User $user): RedirectResponse
+    public function generateResetLink(Request $request, User $user): RedirectResponse
     {
         abort_unless($request->user()->canManageUser($user), 403);
 
-        if ($user->id === $request->user()->id || $user->role === User::ROLE_ADMIN) {
+        if ($user->id === $request->user()->id || !$request->user()->canManageUser($user)) {
             abort(403, 'Không thể áp dụng yêu cầu này cho tài khoản này.');
         }
+
+        $token = Password::createToken($user);
+        $resetLink = url('/reset-password/' . $token) . '?email=' . urlencode($user->email);
 
         $user->update([
             'must_change_password' => true,
@@ -148,7 +150,8 @@ class InternalUserController extends Controller
 
         return redirect()
             ->route('users.edit', $user)
-            ->with('success', 'Đã yêu cầu tài khoản này đổi mật khẩu ở lần đăng nhập tiếp theo.');
+            ->with('reset_link', $resetLink)
+            ->with('success', 'Đã tạo liên kết đặt lại mật khẩu. Liên kết chỉ hiển thị một lần.');
     }
 
     private function statusLabels(): array

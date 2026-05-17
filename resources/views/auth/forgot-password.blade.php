@@ -22,6 +22,12 @@
             @if(session('status'))
                 <div class="alert alert-success py-2">{{ session('status') }}</div>
             @endif
+            @if(session('reset_link'))
+                <div class="alert alert-warning py-2">
+                    <div class="fw-bold mb-1">Liên kết đặt lại mật khẩu local:</div>
+                    <a href="{{ session('reset_link') }}" class="small text-break">{{ session('reset_link') }}</a>
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('password.email') }}">
                 @csrf

@@ -15,7 +15,6 @@ class EnsurePasswordChanged
         }
 
         if (
-            $request->routeIs('profile.edit') ||
             $request->routeIs('profile.password') ||
             $request->routeIs('profile.password.update') ||
             $request->routeIs('logout')

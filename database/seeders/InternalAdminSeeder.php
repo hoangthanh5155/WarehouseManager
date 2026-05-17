@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class InternalAdminSeeder extends Seeder
 {
@@ -15,12 +14,13 @@ class InternalAdminSeeder extends Seeder
         }
 
         User::query()->create([
-            'name' => 'Admin Chủ kho',
+            'name' => 'admin',
             'display_name' => 'Admin Chủ kho',
             'email' => 'admin@warehouse.local',
-            'password' => Hash::make('Admin@123456'),
+            'password' => 'Admin@123456',
             'role' => User::ROLE_ADMIN,
             'status' => User::STATUS_ACTIVE,
+            'must_change_password' => false,
         ]);
     }
 }

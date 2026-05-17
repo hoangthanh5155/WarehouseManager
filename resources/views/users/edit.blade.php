@@ -16,16 +16,22 @@
             @if(session('success'))
                 <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
             @endif
+            @if(session('reset_link'))
+                <div class="alert alert-warning border-0 shadow-sm">
+                    <div class="fw-bold mb-1">Liên kết đặt lại mật khẩu, chỉ hiển thị một lần:</div>
+                    <a href="{{ session('reset_link') }}" class="text-break small">{{ session('reset_link') }}</a>
+                </div>
+            @endif
             <form method="POST" action="{{ route('users.update', $managedUser) }}">
                 @method('PUT')
                 @include('users._form')
             </form>
             @if(auth()->user()->canManageUser($managedUser))
                 <hr>
-                <form method="POST" action="{{ route('users.requirePasswordChange', $managedUser) }}" onsubmit="return confirm('Yêu cầu tài khoản này tự đổi mật khẩu ở lần đăng nhập tiếp theo?');">
+                <form method="POST" action="{{ route('users.resetLink', $managedUser) }}" onsubmit="return confirm('Tạo liên kết đặt lại mật khẩu cho tài khoản này?');">
                     @csrf
-                    <button class="btn btn-outline-warning fw-bold" type="submit" @disabled($managedUser->must_change_password)>
-                        <i class="bi bi-key me-1"></i> Yêu cầu đổi mật khẩu
+                    <button class="btn btn-outline-warning fw-bold" type="submit">
+                        <i class="bi bi-link-45deg me-1"></i> Tạo liên kết đặt lại mật khẩu
                     </button>
                     @if($managedUser->must_change_password)
                         <div class="form-text">Tài khoản này đang được yêu cầu đổi mật khẩu.</div>

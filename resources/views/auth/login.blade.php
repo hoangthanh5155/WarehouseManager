@@ -28,12 +28,17 @@
                     {{ $errors->first() }}
                 </div>
             @endif
+            @if(session('status'))
+                <div class="alert alert-success py-2">
+                    {{ session('status') }}
+                </div>
+            @endif
 
             <form method="POST" action="{{ route('admin.login.submit') }}">
                 @csrf
                 <div class="mb-3">
-                    <label class="form-label fw-bold small text-muted">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" class="form-control form-control-lg" autocomplete="email" required autofocus>
+                    <label class="form-label fw-bold small text-muted">Tên đăng nhập hoặc Email</label>
+                    <input type="text" name="login" value="{{ old('login') }}" class="form-control form-control-lg" autocomplete="username" required autofocus>
                 </div>
 
                 <div class="mb-3">

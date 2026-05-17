@@ -18,6 +18,8 @@ Route::middleware('guest')->group(function () {
     Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.submit');
     Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'showResetPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
@@ -59,7 +61,7 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::middleware('can.manage.users')->group(function () {
         Route::resource('users', InternalUserController::class)->except(['show', 'destroy']);
         Route::patch('/users/{user}/status', [InternalUserController::class, 'toggleStatus'])->name('users.toggleStatus');
-        Route::post('/users/{user}/require-password-change', [InternalUserController::class, 'requirePasswordChange'])->name('users.requirePasswordChange');
+        Route::post('/users/{user}/reset-link', [InternalUserController::class, 'generateResetLink'])->name('users.resetLink');
     });
 
     Route::middleware('permission:manage_settings')->group(function () {
