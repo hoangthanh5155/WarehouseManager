@@ -43,15 +43,23 @@ class InternalUserController extends Controller
 
     public function create(): View
     {
+        $currentUser = auth()->user();
+
         return view('users.create', [
-            'manageableRoles' => auth()->user()->manageableRoles(),
+            'manageableRoles' => $this->creatableRoleOptions($currentUser),
             'statusLabels' => $this->statusLabels(),
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $roles = array_keys($request->user()->manageableRoles());
+        $roles = array_keys($this->creatableRoleOptions($request->user()));
+
+        if ($request->input('role') === User::ROLE_ADMIN) {
+            return back()
+                ->withErrors(['role' => 'Hệ thống chỉ cho phép một tài khoản Chủ kho/root.'])
+                ->withInput();
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', 'regex:/^[A-Za-z0-9_.-]+$/', 'unique:users,name'],
@@ -60,19 +68,27 @@ class InternalUserController extends Controller
             'phone' => ['nullable', 'string', 'max:30'],
             'role' => ['required', Rule::in($roles)],
             'status' => ['required', Rule::in(array_keys($this->statusLabels()))],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        if ($validated['role'] === User::ROLE_ADMIN && User::query()->where('role', User::ROLE_ADMIN)->exists()) {
-            return back()->withErrors(['role' => 'Hệ thống chỉ cho phép một tài khoản Chủ kho/root.'])->withInput();
-        }
+        $temporaryPassword = $this->resolveTemporaryPassword(
+            $validated['name'],
+            $request->input('initial_password')
+        );
 
         $validated['created_by'] = $request->user()->id;
         $validated['must_change_password'] = true;
+        $validated['password'] = $temporaryPassword;
 
-        User::query()->create($validated);
+        $user = User::query()->create($validated);
 
-        return redirect()->route('users.index')->with('success', 'Đã tạo tài khoản nội bộ.');
+        return redirect()
+            ->route('users.create')
+            ->with('success', 'Đã tạo tài khoản nội bộ.')
+            ->with('created_account', [
+                'username' => $user->name,
+                'temporary_password' => $temporaryPassword,
+                'role_label' => $user->roleLabel(),
+            ]);
     }
 
     public function edit(User $user): View
@@ -81,8 +97,9 @@ class InternalUserController extends Controller
 
         return view('users.edit', [
             'managedUser' => $user,
-            'manageableRoles' => auth()->user()->manageableRoles(),
+            'manageableRoles' => $this->editableRoleOptions(auth()->user(), $user),
             'statusLabels' => $this->statusLabels(),
+            'roleReadonly' => $user->role === User::ROLE_ADMIN,
         ]);
     }
 
@@ -90,15 +107,31 @@ class InternalUserController extends Controller
     {
         abort_unless($request->user()->canManageUser($user), 403);
 
-        $roles = array_keys($request->user()->manageableRoles());
+        $roleReadonly = $user->role === User::ROLE_ADMIN;
+        $roles = array_keys($this->editableRoleOptions($request->user(), $user));
 
-        $validated = $request->validate([
+        if (!$roleReadonly && $request->input('role') === User::ROLE_ADMIN) {
+            return back()
+                ->withErrors(['role' => 'Hệ thống chỉ cho phép một tài khoản Chủ kho/root.'])
+                ->withInput();
+        }
+
+        $rules = [
             'display_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:30'],
-            'role' => ['required', Rule::in($roles)],
             'status' => ['required', Rule::in(array_keys($this->statusLabels()))],
-        ]);
+        ];
+
+        if (!$roleReadonly) {
+            $rules['role'] = ['required', Rule::in($roles)];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($roleReadonly) {
+            $validated['role'] = User::ROLE_ADMIN;
+        }
 
         if ($user->id === $request->user()->id && $validated['status'] === User::STATUS_LOCKED) {
             return back()->withErrors(['status' => 'Không thể tự khóa tài khoản đang đăng nhập.'])->withInput();
@@ -106,10 +139,6 @@ class InternalUserController extends Controller
 
         if ($user->id === $request->user()->id && $validated['role'] !== User::ROLE_ADMIN && $request->user()->isAdmin()) {
             return back()->withErrors(['role' => 'Không thể tự hạ quyền Chủ kho của chính mình.'])->withInput();
-        }
-
-        if ($validated['role'] === User::ROLE_ADMIN && $user->role !== User::ROLE_ADMIN && User::query()->where('role', User::ROLE_ADMIN)->exists()) {
-            return back()->withErrors(['role' => 'Hệ thống chỉ cho phép một tài khoản Chủ kho/root.'])->withInput();
         }
 
         $user->update($validated);
@@ -159,5 +188,39 @@ class InternalUserController extends Controller
             User::STATUS_ACTIVE => 'Đang hoạt động',
             User::STATUS_LOCKED => 'Đã khóa',
         ];
+    }
+
+    private function creatableRoleOptions(User $currentUser): array
+    {
+        return collect($currentUser->manageableRoles())
+            ->except([User::ROLE_ADMIN])
+            ->all();
+    }
+
+    private function editableRoleOptions(User $currentUser, User $targetUser): array
+    {
+        if ($targetUser->role === User::ROLE_ADMIN) {
+            return [User::ROLE_ADMIN => User::roleLabels()[User::ROLE_ADMIN]];
+        }
+
+        return collect($currentUser->manageableRoles())
+            ->except([User::ROLE_ADMIN])
+            ->all();
+    }
+
+    private function generateTemporaryPassword(string $username): string
+    {
+        return 'WMS@' . $username . '#' . random_int(1000, 9999);
+    }
+
+    private function resolveTemporaryPassword(string $username, ?string $submittedPassword): string
+    {
+        $expectedPattern = '/^WMS@' . preg_quote($username, '/') . '#\d{4}$/';
+
+        if (is_string($submittedPassword) && preg_match($expectedPattern, $submittedPassword)) {
+            return $submittedPassword;
+        }
+
+        return $this->generateTemporaryPassword($username);
     }
 }

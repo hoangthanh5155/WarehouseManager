@@ -1,14 +1,19 @@
 @csrf
+@php
+    $isEditing = isset($managedUser);
+    $isRoleReadonly = $roleReadonly ?? false;
+@endphp
 
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Tên đăng nhập</label>
-        @isset($managedUser)
+        @if($isEditing)
             <input type="text" value="{{ $managedUser->name }}" class="form-control bg-light" readonly disabled>
             <div class="form-text">Tên đăng nhập dùng để đăng nhập và không thể sửa tại đây.</div>
         @else
-            <input type="text" name="name" value="{{ old('name') }}" class="form-control" required>
-        @endisset
+            <input type="text" name="name" id="userNameInput" value="{{ old('name') }}" class="form-control" required>
+            <div class="form-text">Chỉ dùng chữ, số, dấu gạch ngang, gạch dưới hoặc dấu chấm.</div>
+        @endif
     </div>
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Tên hiển thị</label>
@@ -24,11 +29,16 @@
     </div>
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Vai trò</label>
-        <select name="role" class="form-select" required>
-            @foreach($manageableRoles as $role => $label)
-                <option value="{{ $role }}" @selected(old('role', $managedUser->role ?? '') === $role)>{{ $label }}</option>
-            @endforeach
-        </select>
+        @if($isRoleReadonly)
+            <input type="text" class="form-control bg-light" value="{{ $managedUser->roleLabel() }}" readonly disabled>
+            <div class="form-text">Vai trò Chủ kho/root được bảo vệ và không thể sửa tại đây.</div>
+        @else
+            <select name="role" class="form-select" required>
+                @foreach($manageableRoles as $role => $label)
+                    <option value="{{ $role }}" @selected(old('role', $managedUser->role ?? '') === $role)>{{ $label }}</option>
+                @endforeach
+            </select>
+        @endif
     </div>
     <div class="col-md-6">
         <label class="form-label fw-bold small text-muted">Trạng thái</label>
@@ -38,14 +48,30 @@
             @endforeach
         </select>
     </div>
-    @unless(isset($managedUser))
-        <div class="col-md-6">
-            <label class="form-label fw-bold small text-muted">Mật khẩu</label>
-            <input type="password" name="password" class="form-control" required>
-        </div>
-        <div class="col-md-6">
-            <label class="form-label fw-bold small text-muted">Nhập lại mật khẩu</label>
-            <input type="password" name="password_confirmation" class="form-control" required>
+    @unless($isEditing)
+        <div class="col-12">
+            <div class="border rounded-4 p-3 bg-light">
+                <div class="d-flex align-items-start gap-2 mb-2">
+                    <div class="bg-primary-subtle text-primary rounded-3 d-grid flex-shrink-0" style="width:38px;height:38px;place-items:center;">
+                        <i class="bi bi-key"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">Mật khẩu tạm ban đầu</div>
+                        <div class="text-muted small">Đây là mật khẩu tạm. Người dùng sẽ phải đổi mật khẩu ở lần đăng nhập đầu tiên.</div>
+                    </div>
+                </div>
+                <div class="row g-2 align-items-center">
+                    <div class="col-md">
+                        <input type="text" id="initialPasswordPreview" name="initial_password" class="form-control bg-white fw-bold" readonly>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="button" id="regenerateInitialPassword" class="btn btn-outline-primary fw-bold w-100">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Tạo lại mật khẩu
+                        </button>
+                    </div>
+                </div>
+                <div class="form-text">Chỉ chia sẻ mật khẩu này cho đúng người dùng.</div>
+            </div>
         </div>
     @endunless
 </div>
