@@ -149,6 +149,9 @@
                 $canManageSettings = $navUser?->canManageSettings();
                 $canManageMasterData = $navUser?->canManageMasterData();
                 $canViewFinancialReports = $navUser?->canViewFinancialReports();
+                $canViewWarehouseReports = $navUser?->canViewWarehouseReports();
+                $canViewWarehouseHistory = $navUser?->canViewWarehouseHistory();
+                $canTraceSerial = $navUser?->canTraceSerial();
             @endphp
 
             <ul class="sidebar-nav" id="sidebarMenu">
@@ -218,8 +221,10 @@
                         @if($canExportStock)
                             <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
                         @endif
+                        @if($canTraceSerial)
+                            <li><a href="{{ route('serial.trace.index') }}" class="nav-link {{ request()->routeIs('serial.trace.*') ? 'active' : '' }}">Truy vết Serial</a></li>
+                        @endif
                         @if($isAdmin)
-                            <li><a href="#" class="nav-link">Truy vết Serial</a></li>
                             <li><a href="#" class="nav-link">Tồn kho</a></li>
                         @endif
                         
@@ -273,15 +278,22 @@
                 </li>
                 @endif
 
-                @if($canViewFinancialReports)
+                @if($canViewFinancialReports || $canViewWarehouseReports || $canViewWarehouseHistory)
                 <li class="nav-item">
                     <a href="#reportSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('reports.*') ? 'active' : '' }}" data-sidebar-target="#reportSubmenu" role="button" aria-expanded="false" aria-controls="reportSubmenu">
                         <div><i class="bi bi-bar-chart-line-fill menu-icon"></i>Báo cáo - Thống kê</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
                     <ul class="collapse submenu" id="reportSubmenu">
-                        <li><a href="{{ route('reports.revenue') }}" class="nav-link {{ request()->routeIs('reports.revenue') ? 'active' : '' }}">Doanh thu</a></li>
-                        <li><a href="#" class="nav-link">Nhập xuất tồn</a></li>
+                        @if($canViewFinancialReports)
+                            <li><a href="{{ route('reports.revenue') }}" class="nav-link {{ request()->routeIs('reports.revenue') ? 'active' : '' }}">Doanh thu</a></li>
+                        @endif
+                        @if($canViewWarehouseReports)
+                            <li><a href="{{ route('reports.inventory_summary') }}" class="nav-link {{ request()->routeIs('reports.inventory_summary') ? 'active' : '' }}">Nhập xuất tồn</a></li>
+                        @endif
+                        @if($canViewWarehouseHistory)
+                            <li><a href="{{ route('reports.warehouse_history') }}" class="nav-link {{ request()->routeIs('reports.warehouse_history*') ? 'active' : '' }}">Lịch sử kho</a></li>
+                        @endif
                     </ul>
                 </li>
                 @endif

@@ -9,6 +9,11 @@ class Product extends Model
     // Mở khóa toàn bộ các cột để lưu dữ liệu hàng loạt không bị lỗi fillable
     protected $guarded = [];
 
+    protected $casts = [
+        'imported_at' => 'datetime',
+        'exported_at' => 'datetime',
+    ];
+
     // Khai báo để Laravel hiểu khi gọi $product->supplier
     public function supplier()
     {
@@ -25,5 +30,20 @@ class Product extends Model
     public function productCatalog()
     {
         return $this->belongsTo(ProductCatalog::class, 'product_catalog_id');
+    }
+
+    public function importVoucher()
+    {
+        return $this->belongsTo(ImportVoucher::class);
+    }
+
+    public function exportVoucher()
+    {
+        return $this->belongsTo(ExportVoucher::class);
+    }
+
+    public function movements()
+    {
+        return $this->hasMany(StockMovement::class);
     }
 }

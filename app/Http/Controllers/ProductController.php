@@ -7,6 +7,8 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\ProductCatalog;
 use App\Models\Location;
+use App\Models\ImportVoucher;
+use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -190,15 +192,35 @@ class ProductController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Mã SN này đã tồn tại trong kho!']);
             }
 
-            Product::create([
-                'product_catalog_id' => $product_catalog_id,
-                'supplier_id' => $supplier_id,
-                'location_id' => $location_id,
-                'serial_number' => $sn,
-                'status' => 1
-            ]);
+            $importCode = null;
 
-            return response()->json(['status' => 'success']);
+            DB::transaction(function () use ($request, $sn, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, &$importCode) {
+                $now = now();
+                $importVoucher = $this->createImportVoucher(
+                    $supplier_id,
+                    $product_catalog_id,
+                    $location_id,
+                    $wholesale_price,
+                    1,
+                    $request->user()?->id,
+                    $now
+                );
+                $importCode = $importVoucher->import_code;
+
+                $product = Product::create([
+                    'product_catalog_id' => $product_catalog_id,
+                    'supplier_id' => $supplier_id,
+                    'location_id' => $location_id,
+                    'serial_number' => $sn,
+                    'status' => 1,
+                    'import_voucher_id' => $importVoucher->id,
+                    'imported_at' => $now,
+                ]);
+
+                $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+            });
+
+            return response()->json(['status' => 'success', 'import_code' => $importCode]);
         } 
         
         // luồng 2: TAB 2 - Tạo mã hàng loạt & In tem qua AJAX
@@ -217,24 +239,41 @@ class ProductController extends Controller
                 return response()->json(['status' => 'error', 'message' => 'Thiếu thông tin nhà cung cấp, sản phẩm hoặc vị trí kệ.']);
             }
 
-            for ($i = 0; $i < $quantity; $i++) {
-                do {
-                    $code = 'SN' . date('ymd') . strtoupper(bin2hex(random_bytes(3)));
-                } while (Product::where('serial_number', $code)->exists());
-                
-                Product::create([
-                    'product_catalog_id' => $product_catalog_id,
-                    'supplier_id' => $supplier_id,
-                    'location_id' => $location_id,
-                    'serial_number' => $code,
-                    'status' => 1
-                ]);
-                
-                $newProducts[] = [
-                    'sn' => $code,
-                    'name' => $productName
-                ];
-            }
+            DB::transaction(function () use ($request, $quantity, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, $productName, &$newProducts) {
+                $now = now();
+                $importVoucher = $this->createImportVoucher(
+                    $supplier_id,
+                    $product_catalog_id,
+                    $location_id,
+                    $wholesale_price,
+                    $quantity,
+                    $request->user()?->id,
+                    $now
+                );
+
+                for ($i = 0; $i < $quantity; $i++) {
+                    do {
+                        $code = 'SN' . date('ymd') . strtoupper(bin2hex(random_bytes(3)));
+                    } while (Product::where('serial_number', $code)->exists());
+
+                    $product = Product::create([
+                        'product_catalog_id' => $product_catalog_id,
+                        'supplier_id' => $supplier_id,
+                        'location_id' => $location_id,
+                        'serial_number' => $code,
+                        'status' => 1,
+                        'import_voucher_id' => $importVoucher->id,
+                        'imported_at' => $now,
+                    ]);
+
+                    $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
+
+                    $newProducts[] = [
+                        'sn' => $code,
+                        'name' => $productName
+                    ];
+                }
+            });
             
             return response()->json([
                 'status' => 'success',
@@ -284,5 +323,47 @@ class ProductController extends Controller
         }
 
         return response()->json($payload);
+    }
+
+    private function createImportVoucher($supplierId, $productCatalogId, $locationId, $wholesalePrice, int $quantity, ?int $userId, $importedAt): ImportVoucher
+    {
+        return ImportVoucher::create([
+            'import_code' => $this->generateImportCode(),
+            'supplier_id' => $supplierId,
+            'product_catalog_id' => $productCatalogId,
+            'location_id' => $locationId,
+            'wholesale_price' => $wholesalePrice ?: 0,
+            'total_quantity' => $quantity,
+            'user_id' => $userId,
+            'imported_at' => $importedAt,
+        ]);
+    }
+
+    private function createImportMovement(Product $product, ImportVoucher $importVoucher, ?int $userId, $occurredAt): void
+    {
+        StockMovement::create([
+            'movement_type' => StockMovement::TYPE_IMPORT,
+            'product_id' => $product->id,
+            'serial_number' => $product->serial_number,
+            'product_catalog_id' => $product->product_catalog_id,
+            'supplier_id' => $product->supplier_id,
+            'from_status' => null,
+            'to_status' => 1,
+            'from_location_id' => null,
+            'to_location_id' => $product->location_id,
+            'import_voucher_id' => $importVoucher->id,
+            'user_id' => $userId,
+            'quantity' => 1,
+            'occurred_at' => $occurredAt,
+        ]);
+    }
+
+    private function generateImportCode(): string
+    {
+        do {
+            $code = 'PN-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
+        } while (ImportVoucher::where('import_code', $code)->exists());
+
+        return $code;
     }
 }

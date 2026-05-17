@@ -11,6 +11,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SerialTraceController;
 use App\Http\Controllers\SupplierController;
 
 Route::middleware('guest')->group(function () {
@@ -42,6 +43,12 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/reports/revenue', [ReportController::class, 'revenue'])->middleware('permission:financial_reports')->name('reports.revenue');
+    Route::get('/reports/inventory-summary', [ReportController::class, 'inventorySummary'])->middleware('permission:warehouse_reports')->name('reports.inventory_summary');
+    Route::get('/reports/warehouse-history', [ReportController::class, 'warehouseHistory'])->middleware('permission:warehouse_history')->name('reports.warehouse_history');
+    Route::get('/reports/warehouse-history/imports/{importVoucher}', [ReportController::class, 'importVoucherDetail'])->middleware('permission:warehouse_history')->name('reports.warehouse_history.imports.show');
+
+    Route::get('/serial-trace', [SerialTraceController::class, 'index'])->middleware('permission:trace_serial')->name('serial.trace.index');
+    Route::get('/serial-trace/search', [SerialTraceController::class, 'search'])->middleware('permission:trace_serial')->name('serial.trace.search');
 
     Route::resource('product-catalogs', ProductCatalogController::class)->middleware('permission:manage_master_data');
     Route::resource('suppliers', SupplierController::class)->middleware('permission:manage_master_data');

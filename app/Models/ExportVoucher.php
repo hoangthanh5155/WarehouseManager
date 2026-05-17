@@ -37,4 +37,14 @@ class ExportVoucher extends Model
         'items' => 'array',
         'exported_at' => 'datetime'
     ];
+
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    public function movements()
+    {
+        return $this->hasMany(StockMovement::class);
+    }
 }

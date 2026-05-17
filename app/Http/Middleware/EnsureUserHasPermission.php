@@ -14,6 +14,9 @@ class EnsureUserHasPermission
 
         $allowed = match ($ability) {
             'financial_reports' => $user?->canViewFinancialReports(),
+            'warehouse_reports' => $user?->canViewWarehouseReports(),
+            'warehouse_history' => $user?->canViewWarehouseHistory(),
+            'trace_serial' => $user?->canTraceSerial(),
             'cost_prices' => $user?->canViewCostPrices(),
             'full_product_detail' => $user?->canAccessFullProductDetail(),
             'import_stock' => $user?->canImportStock(),

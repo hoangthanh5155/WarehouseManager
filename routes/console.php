@@ -3,6 +3,9 @@
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
+use App\Models\ExportVoucher;
+use App\Models\Product;
+use App\Models\StockMovement;
 use App\Models\User;
 
 Artisan::command('inspire', function () {
@@ -61,3 +64,94 @@ Artisan::command('owner:reset-password {--email=} {--password=}', function () {
     $this->info('Đã đặt lại mật khẩu owner: ' . $owner->email);
     return 0;
 })->purpose('Reset password for the root owner/admin account safely');
+
+Artisan::command('stock:backfill-movements', function () {
+    $createdImports = 0;
+    $createdExports = 0;
+    $linkedExports = 0;
+
+    Product::query()
+        ->with(['exportVoucher'])
+        ->orderBy('id')
+        ->chunkById(200, function ($products) use (&$createdImports, &$createdExports, &$linkedExports) {
+            foreach ($products as $product) {
+                $importExists = StockMovement::query()
+                    ->where('product_id', $product->id)
+                    ->where('movement_type', StockMovement::TYPE_IMPORT)
+                    ->exists();
+
+                if (!$importExists) {
+                    StockMovement::create([
+                        'movement_type' => StockMovement::TYPE_IMPORT,
+                        'product_id' => $product->id,
+                        'serial_number' => $product->serial_number,
+                        'product_catalog_id' => $product->product_catalog_id,
+                        'supplier_id' => $product->supplier_id,
+                        'from_status' => null,
+                        'to_status' => 1,
+                        'from_location_id' => null,
+                        'to_location_id' => $product->location_id,
+                        'import_voucher_id' => $product->import_voucher_id,
+                        'quantity' => 1,
+                        'note' => $product->import_voucher_id ? null : 'Được tạo lại từ dữ liệu sản phẩm hiện có.',
+                        'occurred_at' => $product->imported_at ?? $product->created_at ?? now(),
+                    ]);
+                    $createdImports++;
+                }
+
+                if ((int) $product->status !== 2) {
+                    continue;
+                }
+
+                if (!$product->export_voucher_id) {
+                    $voucher = ExportVoucher::query()
+                        ->where('items', 'like', '%' . $product->serial_number . '%')
+                        ->orderByDesc('exported_at')
+                        ->first();
+
+                    if ($voucher) {
+                        $items = is_string($voucher->items) ? json_decode($voucher->items, true) : $voucher->items;
+                        $containsSerial = collect($items ?: [])->contains(function ($item) use ($product) {
+                            return in_array($product->serial_number, $item['serials'] ?? [], true);
+                        });
+
+                        if ($containsSerial) {
+                            $product->forceFill([
+                                'export_voucher_id' => $voucher->id,
+                                'exported_at' => $product->exported_at ?? $voucher->exported_at,
+                            ])->save();
+                            $linkedExports++;
+                        }
+                    }
+                }
+
+                $exportExists = StockMovement::query()
+                    ->where('product_id', $product->id)
+                    ->where('movement_type', StockMovement::TYPE_EXPORT)
+                    ->exists();
+
+                if (!$exportExists) {
+                    StockMovement::create([
+                        'movement_type' => StockMovement::TYPE_EXPORT,
+                        'product_id' => $product->id,
+                        'serial_number' => $product->serial_number,
+                        'product_catalog_id' => $product->product_catalog_id,
+                        'supplier_id' => $product->supplier_id,
+                        'from_status' => 1,
+                        'to_status' => 2,
+                        'from_location_id' => $product->location_id,
+                        'to_location_id' => null,
+                        'export_voucher_id' => $product->export_voucher_id,
+                        'quantity' => 1,
+                        'note' => $product->export_voucher_id ? null : 'Đã xuất trước khi có hệ thống truy vết đầy đủ.',
+                        'occurred_at' => $product->exported_at ?? $product->updated_at ?? now(),
+                    ]);
+                    $createdExports++;
+                }
+            }
+        });
+
+    $this->info("Đã tạo {$createdImports} movement nhập, {$createdExports} movement xuất.");
+    $this->info("Đã liên kết {$linkedExports} sản phẩm với phiếu xuất cũ.");
+    return 0;
+})->purpose('Backfill stock movements for existing product serial data');

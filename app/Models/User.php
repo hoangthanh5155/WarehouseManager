@@ -95,6 +95,25 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
+    public function canViewWarehouseReports(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_WAREHOUSE_MANAGER,
+            self::ROLE_WAREHOUSE_STAFF,
+        ], true);
+    }
+
+    public function canViewWarehouseHistory(): bool
+    {
+        return $this->canViewWarehouseReports();
+    }
+
+    public function canTraceSerial(): bool
+    {
+        return $this->canViewWarehouseReports();
+    }
+
     public function canViewCostPrices(): bool
     {
         return $this->isAdmin();

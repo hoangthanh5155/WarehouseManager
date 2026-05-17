@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\ExportVoucher;
 use App\Models\ProductCatalog;
 use App\Models\Product;
+use App\Models\StockMovement;
 use Illuminate\Support\Facades\DB;
 
 class ExportController extends Controller
@@ -169,17 +170,7 @@ class ExportController extends Controller
                 'exported_at' => $now
             ]);
 
-            // Cập nhật trạng thái 'sold' (2) cho các mã SN của đơn chính
-            foreach ($request->main_items as $item) {
-                if (!empty($item['serials'])) {
-                    $updated = Product::whereIn('serial_number', $item['serials'])
-                        ->update(['status' => 2, 'updated_at' => $now]);
-
-                    if ($updated === 0) {
-                        throw new \Exception('Không thể cập nhật trạng thái mã SN của đơn chính. Vui lòng kiểm tra lại mã SN.');
-                    }
-                }
-            }
+            $this->exportSerialItems($request->main_items, $mainVoucher, $request->user()?->id, $now);
 
             // --------------------------------------------------
             // BƯỚC B: LƯU CÁC ĐƠN MỞ RỘNG (Nếu có)
@@ -229,13 +220,7 @@ class ExportController extends Controller
                         'exported_at' => $now
                     ]);
 
-                    // Cập nhật trạng thái cho các mã SN của đơn mở rộng
-                    foreach ($sub['items'] as $item) {
-                        if (!empty($item['serials'])) {
-                            Product::whereIn('serial_number', $item['serials'])
-                                ->update(['status' => 2, 'updated_at' => $now]);
-                        }
-                    }
+                    $this->exportSerialItems($sub['items'], $subVoucher, $request->user()?->id, $now);
 
                     $subVoucherIds[] = $subVoucher->id;
                 }
@@ -291,5 +276,60 @@ class ExportController extends Controller
         $voucher->update($validated);
 
         return redirect()->route('export.index')->with('success', 'Đã cập nhật thông tin hóa đơn.');
+    }
+
+    private function exportSerialItems(array $items, ExportVoucher $voucher, ?int $userId, $exportedAt): void
+    {
+        foreach ($items as $item) {
+            $serials = collect($item['serials'] ?? [])
+                ->map(fn ($serial) => trim((string) $serial))
+                ->filter()
+                ->unique()
+                ->values();
+
+            if ($serials->isEmpty()) {
+                throw new \Exception('Thiếu danh sách mã SN cần xuất cho sản phẩm trong đơn.');
+            }
+
+            $productCatalogId = $item['product_id'] ?? null;
+            $products = Product::query()
+                ->where('product_catalog_id', $productCatalogId)
+                ->where('status', 1)
+                ->whereIn('serial_number', $serials)
+                ->get()
+                ->keyBy('serial_number');
+
+            if ($products->count() !== $serials->count()) {
+                $missing = $serials->reject(fn ($serial) => $products->has($serial))->implode(', ');
+                throw new \Exception('Một số mã SN không còn trong kho hoặc không thuộc đúng sản phẩm: ' . $missing);
+            }
+
+            foreach ($serials as $serial) {
+                $product = $products->get($serial);
+
+                StockMovement::create([
+                    'movement_type' => StockMovement::TYPE_EXPORT,
+                    'product_id' => $product->id,
+                    'serial_number' => $product->serial_number,
+                    'product_catalog_id' => $product->product_catalog_id,
+                    'supplier_id' => $product->supplier_id,
+                    'from_status' => 1,
+                    'to_status' => 2,
+                    'from_location_id' => $product->location_id,
+                    'to_location_id' => null,
+                    'export_voucher_id' => $voucher->id,
+                    'user_id' => $userId,
+                    'quantity' => 1,
+                    'occurred_at' => $exportedAt,
+                ]);
+
+                $product->update([
+                    'status' => 2,
+                    'export_voucher_id' => $voucher->id,
+                    'exported_at' => $exportedAt,
+                    'updated_at' => $exportedAt,
+                ]);
+            }
+        }
     }
 }
