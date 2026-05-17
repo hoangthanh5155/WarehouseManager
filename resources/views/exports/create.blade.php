@@ -98,27 +98,35 @@
                 <label class="small text-muted fw-bold mb-1">Kiểu xuất hàng:</label>
                 <div class="d-flex gap-2">
                     <input type="radio" class="btn-check" name="export_type" id="exportNormal" value="normal" checked autocomplete="off">
-                    <label class="btn btn-outline-primary w-50 fw-bold py-2" for="exportNormal">🛒 Xuất thường</label>
+                    <label class="btn btn-outline-primary w-50 fw-bold py-2" for="exportNormal">
+                        <i class="bi bi-cart-check me-1"></i>Xuất thường
+                    </label>
 
                     <input type="radio" class="btn-check" name="export_type" id="exportSystem" value="system" autocomplete="off">
-                    <label class="btn btn-outline-secondary w-50 fw-bold py-2" for="exportSystem">📋 Đơn hệ thống</label>
+                    <label class="btn btn-outline-secondary w-50 fw-bold py-2" for="exportSystem">
+                        <i class="bi bi-clipboard-check me-1"></i>Đơn hệ thống
+                    </label>
                 </div>
             </div>
             <div class="col-12 col-md-6">
                 <label class="small text-muted fw-bold mb-1">Áp dụng mức giá:</label>
                 <div class="d-flex gap-2">
                     <input type="radio" class="btn-check" name="customer_type" id="typeRetail" value="retail" checked autocomplete="off">
-                    <label class="btn btn-outline-danger w-50 fw-bold py-2" for="typeRetail">🙋 Giá Khách lẻ</label>
+                    <label class="btn btn-outline-danger w-50 fw-bold py-2" for="typeRetail">
+                        <i class="bi bi-person me-1"></i>Giá khách lẻ
+                    </label>
 
                     <input type="radio" class="btn-check" name="customer_type" id="typeAgency" value="agency" autocomplete="off">
-                    <label class="btn btn-outline-success w-50 fw-bold py-2" for="typeAgency">🏪 Giá Đại lý</label>
+                    <label class="btn btn-outline-success w-50 fw-bold py-2" for="typeAgency">
+                        <i class="bi bi-shop me-1"></i>Giá đại lý
+                    </label>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3">
-        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge me-1"></i> THÔNG TIN NGƯỜI MUA HÀNG</h6>
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge me-1"></i>Thông tin người mua hàng</h6>
 
         <div class="mb-3">
             <label class="small text-muted fw-bold mb-1">Tìm khách hàng cũ (Nếu có):</label>
@@ -161,7 +169,7 @@
     </div>
 
     <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3" id="mainExportTable" style="border-left: 4px solid #0d6efd !important;">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cart-plus me-1"></i> SẢN PHẨM ĐƠN CHÍNH</h6>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cart-plus me-1"></i>Sản phẩm đơn chính</h6>
 
         <div class="row g-2 align-items-end mb-3">
             <div class="col-12 col-md-6">
@@ -204,7 +212,10 @@
                 </thead>
                 <tbody id="mainExportItems">
                     <tr class="empty-row-main">
-                        <td colspan="4" class="text-center py-4 text-muted">📭 Chưa có sản phẩm nào cho đơn chính.</td>
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-inboxes d-block fs-3 mb-1"></i>
+                            Chưa có sản phẩm trong đơn chính.
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -213,7 +224,7 @@
 
     <div class="card border-0 shadow-sm rounded-3 p-3 bg-white mb-3" style="border-left: 4px solid #ffc107 !important;">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold text-dark m-0"><i class="bi bi-file-earmark-plus me-1"></i> ĐƠN HÀNG MỞ RỘNG (IN RIÊNG)</h6>
+            <h6 class="fw-bold text-dark m-0"><i class="bi bi-file-earmark-plus me-1"></i>Đơn hàng mở rộng (in riêng)</h6>
             <button type="button" id="btnCreateSubVoucher" class="btn btn-sm btn-outline-warning fw-bold">
                 <i class="bi bi-plus-lg me-1"></i> Thêm đơn mở rộng
             </button>
@@ -234,7 +245,7 @@
             </div>
             <div class="col-12 col-md-6">
                 <button type="button" id="btnOpenVerifyModal" class="btn btn-success w-100 fw-bold py-3 shadow fs-5">
-                    <i class="bi bi-shield-check me-2"></i> XÁC NHẬN ĐƠN HÀNG
+                    <i class="bi bi-shield-check me-2"></i>Xác nhận đơn hàng
                 </button>
             </div>
         </div>
@@ -308,7 +319,7 @@
             <div class="modal-footer bg-light border-0">
                 <button type="button" class="btn btn-secondary px-4 fw-bold" data-bs-dismiss="modal">Hủy</button>
                 <button type="button" id="btnConfirmAndSave" class="btn btn-success px-4 fw-bold">
-                    <i class="bi bi-check-circle me-2"></i>Lưu đơn và In ngay
+                    <i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay
                 </button>
             </div>
         </div>

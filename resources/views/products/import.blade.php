@@ -4,6 +4,39 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
 <style>
+    .import-page-shell { max-width: 980px; margin: 0 auto; }
+    .page-header-card {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        padding: 1rem;
+    }
+    .page-kicker { color: #0d6efd; font-size: 0.78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+    .icon-box {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #e7f1ff;
+        color: #0d6efd;
+        flex: 0 0 auto;
+    }
+    .section-card {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        border-radius: 1rem;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+    }
+    .soft-panel { background: #f8fafc; border: 1px solid #e9eef5; border-radius: 1rem; }
+    .scan-panel {
+        border: 1px solid #cfe2ff;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        border-radius: 1rem;
+        padding: 1rem;
+    }
     .custom-tabs { background: #e9ecef; border-radius: 12px; padding: 5px; }
     .custom-tabs .nav-item { margin: 2px 0; }
     @media (min-width: 768px) { .custom-tabs .nav-item { margin: 0 2px; } }
@@ -29,71 +62,83 @@
     $all_catalogs = \App\Models\ProductCatalog::with('supplier')->get();
 @endphp
 
-<div id="app-content" class="container-fluid px-2 px-md-4" style="max-width: 900px; margin: 0 auto;">
+<div id="app-content" class="container-fluid px-2 px-md-4 import-page-shell">
     
-    <div class="d-flex align-items-center gap-3 mb-4 mt-2">
-        <a href="{{ url('/') }}" class="btn btn-light bg-white shadow-sm border rounded-3 px-3 py-2 text-decoration-none flex-shrink-0">
-            <span class="fw-bold text-dark text-nowrap">⬅️ Trở về</span>
-        </a>
-        <h4 class="m-0 fw-bold text-uppercase text-dark lh-base">📦 NHẬP KHO</h4>
+    <div class="page-header-card d-flex align-items-center gap-3 mb-4 mt-2">
+        <div class="icon-box d-none d-sm-inline-flex">
+            <i class="bi bi-box-arrow-in-down fs-5"></i>
+        </div>
+        <div>
+            <div class="page-kicker">Quản lý kho</div>
+            <h4 class="m-0 fw-bold text-dark lh-base">Nhập kho</h4>
+            <div class="text-muted small">Quét serial hoặc tạo mã hàng loạt cho sản phẩm nhập kho</div>
+        </div>
     </div>
 
     <ul class="nav nav-pills custom-tabs flex-column flex-md-row nav-fill mb-4" id="warehouseTab">
-        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab_fast_scan">🔍 1. NHẬP (CÓ SN)</a></li>
-        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab_auto_sn">➕ 2. NHẬP (CHƯA SN)</a></li>
+        <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab_fast_scan"><i class="bi bi-upc-scan me-1"></i>Nhập có serial</a></li>
+        <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab_auto_sn"><i class="bi bi-magic me-1"></i>Tạo serial tự động</a></li>
     </ul>
 
-    <div class="tab-content card p-3 p-md-4 shadow border-0 rounded-4 mb-5">
+    <div class="tab-content section-card p-3 p-md-4 mb-5">
         
         <div class="tab-pane fade show active" id="tab_fast_scan">
-            <div class="d-flex flex-column gap-3 mb-4 p-3 bg-light border rounded context-group">
+            <div class="d-flex flex-column gap-3 mb-4 p-3 soft-panel context-group">
                 <div class="d-flex justify-content-between align-items-center mb-0">
-                    <span class="fw-bold small text-secondary">THÔNG TIN NHẬP HÀNG LÔ</span>
-                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 btn-clear-form" data-tab="1">🧹 Làm mới</button>
+                    <span class="fw-bold small text-secondary"><i class="bi bi-clipboard-data me-1"></i>Thông tin lô nhập</span>
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 btn-clear-form" data-tab="1"><i class="bi bi-arrow-clockwise me-1"></i>Làm mới</button>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">1. Gắn Nhà Cung Cấp</label>
+                    <label class="fw-bold small text-secondary mb-1">Nhà cung cấp</label>
                     <input type="text" id="fast_sup" class="form-control form-control-lg smart-input input-supplier" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off">
                     <div class="smart-menu">
                         @foreach($suppliers as $s) 
                             <div class="smart-option">{{ $s->name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">2. Gắn Tên Sản Phẩm</label>
+                    <label class="fw-bold small text-secondary mb-1">Tên sản phẩm</label>
                     <input type="text" id="fast_prod" class="form-control form-control-lg smart-input input-product" data-suggestion-url="{{ route('products.suggestion') }}" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off">
                     <div class="smart-menu menu-product">
                         @foreach($all_catalogs as $cat) 
                             <div class="smart-option" data-supplier="{{ $cat->supplier ? $cat->supplier->name : '' }}">{{ $cat->product_name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">3. Gắn Vị Trí Kệ</label>
+                    <label class="fw-bold small text-secondary mb-1">Vị trí kệ</label>
                     <input type="text" id="fast_loc" class="form-control form-control-lg smart-input input-location" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off">
                     <div class="smart-menu menu-location">
                         @foreach($locations as $l) 
                             <div class="smart-option" data-shelf="{{ $l->shelf_name }}">{{ $l->shelf_name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="mb-1 position-relative">
-                    <label class="fw-bold small text-secondary mb-1">GIÁ SỈ GỐC / GIÁ NHẬP (VNĐ)</label>
+                    <label class="fw-bold small text-secondary mb-1">Giá sỉ gốc / giá nhập (VNĐ)</label>
                     <input type="number" id="fast_wholesale_price" class="form-control form-control-lg price-input input-wholesale" placeholder="Nhập số tiền" autocomplete="off">
                     <div id="suggestions_fast_wholesale_price" class="d-flex flex-wrap gap-2 mt-2 suggestion-container"></div>
                 </div>
             </div>
 
-            <div>
-                <label class="fw-bold text-primary mb-1">QUÉT MÃ SN VÀO ĐÂY</label>
+            <div class="scan-panel">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="icon-box">
+                        <i class="bi bi-upc-scan fs-5"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">Quét serial</div>
+                        <div class="text-muted small">Bắn mã SN để tự động lưu vào kho</div>
+                    </div>
+                </div>
                 <input type="text" id="fast_sn_input" class="form-control form-control-lg border-primary shadow text-center" data-store-url="{{ route('products.store') }}" placeholder="Bắn súng quét... (Tự động lưu)" style="height: 60px; font-size: 1.3rem;" autocomplete="off">
             </div>
             <div class="mt-4"><ul id="scan_log" class="list-group" style="max-height: 250px; overflow-y: auto;"></ul></div>
@@ -103,54 +148,56 @@
             <form action="{{ route('products.store') }}" method="POST" id="form_auto_sn" class="d-flex flex-column gap-3 context-group">
                 @csrf
                 <div class="d-flex justify-content-between align-items-center mb-0">
-                    <span class="fw-bold small text-secondary">TẠO MÃ HÀNG LOẠT</span>
-                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 btn-clear-form" data-tab="2">🧹 Làm mới</button>
+                    <span class="fw-bold small text-secondary"><i class="bi bi-box-arrow-in-down me-1"></i>Tạo mã hàng loạt</span>
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 btn-clear-form" data-tab="2"><i class="bi bi-arrow-clockwise me-1"></i>Làm mới</button>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">Nhà Cung Cấp</label>
+                    <label class="fw-bold small text-secondary mb-1">Nhà cung cấp</label>
                     <input type="text" id="auto_sup" name="supplier_id" class="form-control form-control-lg smart-input input-supplier" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off" required>
                     <div class="smart-menu">
                         @foreach($suppliers as $s) 
                             <div class="smart-option">{{ $s->name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">Tên Sản Phẩm</label>
+                    <label class="fw-bold small text-secondary mb-1">Tên sản phẩm</label>
                     <input type="text" id="auto_prod" name="product_catalog_id" class="form-control form-control-lg smart-input input-product" data-suggestion-url="{{ route('products.suggestion') }}" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off" required>
                     <div class="smart-menu menu-product">
                         @foreach($all_catalogs as $cat) 
                             <div class="smart-option" data-supplier="{{ $cat->supplier ? $cat->supplier->name : '' }}">{{ $cat->product_name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="smart-input-container">
-                    <label class="fw-bold small text-secondary mb-1">Vị Trí Kệ</label>
+                    <label class="fw-bold small text-secondary mb-1">Vị trí kệ</label>
                     <input type="text" id="auto_loc" name="location_id" class="form-control form-control-lg smart-input input-location" placeholder="Gõ chọn hoặc nhập mới..." autocomplete="off" required>
                     <div class="smart-menu menu-location">
                         @foreach($locations as $l) 
                             <div class="smart-option" data-shelf="{{ $l->shelf_name }}">{{ $l->shelf_name }}</div> 
                         @endforeach
-                        <div class="smart-option smart-add-new d-none">➕ Thêm mới: <span class="new-text"></span></div>
+                        <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới: <span class="new-text"></span></div>
                     </div>
                 </div>
 
                 <div class="mb-1 position-relative">
-                    <label class="fw-bold small text-secondary mb-1">GIÁ SỈ GỐC / GIÁ NHẬP (VNĐ)</label>
+                    <label class="fw-bold small text-secondary mb-1">Giá sỉ gốc / giá nhập (VNĐ)</label>
                     <input type="number" name="wholesale_price" id="wholesale_price" class="form-control form-control-lg price-input input-wholesale" placeholder="Nhập số tiền" autocomplete="off" required>
                     <div id="suggestions_wholesale_price" class="d-flex flex-wrap gap-2 mt-2 suggestion-container"></div>
                 </div>
 
                 <div>
-                    <label class="fw-bold small text-secondary mb-1">SỐ LƯỢNG MUỐN TẠO (Tối đa 100)</label>
+                    <label class="fw-bold small text-secondary mb-1">Số lượng muốn tạo (tối đa 100)</label>
                     <input type="number" name="quantity" id="auto_quantity" class="form-control form-control-lg shadow-sm" min="1" max="100" style="border: 2px solid #ffc107;" required>
                 </div>
-                <button type="submit" id="btn_submit_auto" class="btn btn-success btn-lg mt-3 py-3 fw-bold shadow">🚀 TẠO MÃ & IN TEM</button>
+                <button type="submit" id="btn_submit_auto" class="btn btn-success btn-lg mt-3 py-3 fw-bold shadow">
+                    <i class="bi bi-qr-code-scan me-2"></i>Tạo mã và xem tem
+                </button>
             </form>
         </div>
     </div>
@@ -160,7 +207,7 @@
     <div class="modal-dialog modal-dialog-scrollable modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">
-                <h5 class="modal-title fw-bold m-0">🖨️ XEM TRƯỚC TEM IN</h5>
+                <h5 class="modal-title fw-bold m-0"><i class="bi bi-printer me-2"></i>Xem trước tem in</h5>
                 <select id="label_size_selector" class="form-select form-select-sm text-dark ms-auto" style="width: 120px; cursor: pointer;">
                     <option value="small">35x22 mm</option>
                     <option value="medium" selected>50x30 mm</option>
@@ -173,7 +220,9 @@
             </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tắt</button>
-                <button type="button" id="btn_execute_print" class="btn btn-success btn-lg fw-bold px-5">🖨️ PHÁT LỆNH IN</button>
+                <button type="button" id="btn_execute_print" class="btn btn-success btn-lg fw-bold px-5">
+                    <i class="bi bi-printer-fill me-2"></i>In tem
+                </button>
             </div>
         </div>
     </div>
