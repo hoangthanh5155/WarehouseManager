@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -70,6 +69,7 @@ class InternalUserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['created_by'] = $request->user()->id;
+        $validated['must_change_password'] = true;
 
         User::query()->create($validated);
 
@@ -134,21 +134,21 @@ class InternalUserController extends Controller
         return back()->with('success', 'Đã cập nhật trạng thái tài khoản.');
     }
 
-    public function resetPassword(Request $request, User $user): RedirectResponse
+    public function requirePasswordChange(Request $request, User $user): RedirectResponse
     {
         abort_unless($request->user()->canManageUser($user), 403);
 
-        $temporaryPassword = 'Temp@' . Str::password(10, true, true, false, false);
+        if ($user->id === $request->user()->id || $user->role === User::ROLE_ADMIN) {
+            abort(403, 'Không thể áp dụng yêu cầu này cho tài khoản này.');
+        }
 
         $user->update([
-            'password' => Hash::make($temporaryPassword),
             'must_change_password' => true,
         ]);
 
         return redirect()
             ->route('users.edit', $user)
-            ->with('temporary_password', $temporaryPassword)
-            ->with('success', 'Đã đặt lại mật khẩu tạm. Chỉ hiển thị mật khẩu này một lần.');
+            ->with('success', 'Đã yêu cầu tài khoản này đổi mật khẩu ở lần đăng nhập tiếp theo.');
     }
 
     private function statusLabels(): array

@@ -50,6 +50,7 @@
                     <i class="bi bi-box-arrow-in-right me-1"></i> Đăng nhập
                 </button>
             </form>
+            <a href="{{ route('password.request') }}" class="btn btn-link w-100 mt-3 text-decoration-none">Quên mật khẩu?</a>
         </div>
     </main>
 </body>

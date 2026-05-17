@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.only' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
             'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
+            'password.changed' => \App\Http\Middleware\EnsurePasswordChanged::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

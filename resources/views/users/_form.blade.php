@@ -2,7 +2,7 @@
 
 <div class="row g-3">
     <div class="col-md-6">
-        <label class="form-label fw-bold small text-muted">Tên đăng ký</label>
+        <label class="form-label fw-bold small text-muted">Tên đăng nhập</label>
         <input type="text" name="name" value="{{ old('name', $managedUser->name ?? '') }}" class="form-control" required>
     </div>
     <div class="col-md-6">

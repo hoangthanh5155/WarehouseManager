@@ -314,13 +314,15 @@
                 
                 <div class="d-flex align-items-center gap-3">
                     @auth
-                    <div class="text-end d-none d-md-block">
-                        <div class="fw-bold fs-6 text-dark" style="line-height: 1;">{{ auth()->user()->displayName() }}</div>
-                        <span class="text-muted small">{{ auth()->user()->roleLabel() }}</span>
-                    </div>
-                    <div class="bg-primary-subtle text-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
-                        <i class="bi {{ auth()->user()->roleIcon() }}"></i>
-                    </div>
+                    <a href="{{ route('profile.edit') }}" class="d-flex align-items-center gap-2 text-decoration-none">
+                        <div class="text-end d-none d-md-block">
+                            <div class="fw-bold fs-6 text-dark" style="line-height: 1;">{{ auth()->user()->displayName() }}</div>
+                            <span class="text-muted small">{{ auth()->user()->roleLabel() }}</span>
+                        </div>
+                        <div class="bg-primary-subtle text-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                            <i class="bi {{ auth()->user()->roleIcon() }}"></i>
+                        </div>
+                    </a>
                     <form method="POST" action="{{ route('logout') }}" class="m-0">
                         @csrf
                         <button class="btn btn-sm btn-outline-secondary fw-bold" type="submit" title="Đăng xuất">

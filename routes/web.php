@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InternalUserController;
 use App\Http\Controllers\LocationController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
@@ -15,13 +16,20 @@ use App\Http\Controllers\SupplierController;
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login.submit');
+    Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.email');
 });
 
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
-Route::middleware(['auth', 'active.user'])->group(function () {
+Route::middleware(['auth', 'active.user', 'password.changed'])->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::get('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
     Route::get('/', [ProductController::class, 'index'])->name('products.index');
     Route::match(['get', 'post', 'put'], '/products/catalog/{id}', [ProductController::class, 'showCatalog'])
         ->middleware('permission:full_product_detail')
@@ -51,7 +59,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::middleware('can.manage.users')->group(function () {
         Route::resource('users', InternalUserController::class)->except(['show', 'destroy']);
         Route::patch('/users/{user}/status', [InternalUserController::class, 'toggleStatus'])->name('users.toggleStatus');
-        Route::post('/users/{user}/reset-password', [InternalUserController::class, 'resetPassword'])->name('users.resetPassword');
+        Route::post('/users/{user}/require-password-change', [InternalUserController::class, 'requirePasswordChange'])->name('users.requirePasswordChange');
     });
 
     Route::middleware('permission:manage_settings')->group(function () {
