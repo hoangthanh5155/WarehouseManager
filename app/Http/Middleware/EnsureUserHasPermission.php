@@ -20,6 +20,7 @@ class EnsureUserHasPermission
             'export_stock' => $user?->canExportStock(),
             'edit_export_metadata' => $user?->canEditExportMetadata(),
             'manage_settings' => $user?->canManageSettings(),
+            'manage_master_data' => $user?->canManageMasterData(),
             'manage_warehouse_catalogs' => $user?->canManageWarehouseCatalogs(),
             'operations_dashboard' => $user?->canViewOperationsDashboard(),
             default => false,

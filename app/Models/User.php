@@ -134,6 +134,11 @@ class User extends Authenticatable
         return $this->isAdmin();
     }
 
+    public function canManageMasterData(): bool
+    {
+        return $this->isAdmin();
+    }
+
     public function canManageWarehouseCatalogs(): bool
     {
         return $this->isAdmin() || $this->isWarehouseManager();

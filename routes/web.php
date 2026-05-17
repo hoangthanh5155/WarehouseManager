@@ -43,9 +43,9 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/reports/revenue', [ReportController::class, 'revenue'])->middleware('permission:financial_reports')->name('reports.revenue');
 
-    Route::resource('product-catalogs', ProductCatalogController::class)->middleware('permission:cost_prices');
-    Route::resource('suppliers', SupplierController::class)->middleware('permission:manage_warehouse_catalogs');
-    Route::resource('locations', LocationController::class)->middleware('permission:manage_warehouse_catalogs');
+    Route::resource('product-catalogs', ProductCatalogController::class)->middleware('permission:manage_master_data');
+    Route::resource('suppliers', SupplierController::class)->middleware('permission:manage_master_data');
+    Route::resource('locations', LocationController::class)->middleware('permission:manage_master_data');
 
     Route::get('/smart-suggestion', [ProductController::class, 'smartSuggestion'])->middleware('permission:import_stock')->name('products.suggestion');
 

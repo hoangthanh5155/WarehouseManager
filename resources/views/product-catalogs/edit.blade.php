@@ -16,13 +16,23 @@
     .smart-option { padding: 12px 15px; border-bottom: 1px solid #f8f9fa; cursor: pointer; color: #333; }
     .smart-option:hover { background: #e9ecef; }
     .smart-add-new { color: #0d6efd; font-weight: bold; background: #f1f5fa; position: sticky; bottom: 0; border-top: 1px solid #dee2e6; z-index: 10; }
+    .master-page-header {
+        background: #ffffff;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        border-radius: 1rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+        padding: 1rem;
+    }
+    .page-kicker { color: #0d6efd; font-size: .78rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 </style>
 
-<div class="d-flex align-items-center gap-3 mb-4 mt-2">
-    <a href="{{ route('product-catalogs.index') }}" class="btn btn-light bg-white shadow-sm border rounded-3 px-3 py-2 text-decoration-none flex-shrink-0">
-        <span class="fw-bold text-dark text-nowrap">⬅️ Trở về</span>
+<div class="master-page-header mb-4 mt-2">
+    <a href="{{ route('product-catalogs.index') }}" class="btn btn-sm btn-light bg-white border rounded-pill fw-bold px-3 mb-3">
+        <i class="bi bi-arrow-left me-1"></i>Trở về danh sách
     </a>
-    <h4 class="m-0 fw-bold text-uppercase text-dark lh-base">✏️ CHỈNH SỬA DANH MỤC</h4>
+    <div class="page-kicker">Quản lý kho</div>
+    <h4 class="m-0 fw-bold text-dark lh-base">Sửa danh mục sản phẩm</h4>
+    <div class="text-muted small">Cập nhật thông tin mẫu sản phẩm và vị trí hàng còn tồn</div>
 </div>
 
 @if($errors->any())
@@ -42,13 +52,13 @@
             @method('PUT')
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">Tên Sản Phẩm</label>
+                <label class="fw-bold small text-secondary mb-1">Tên sản phẩm</label>
                 <input type="text" class="form-control bg-light fw-bold" value="{{ $catalog->product_name }}" readonly>
                 <input type="hidden" name="product_name" value="{{ $catalog->product_name }}">
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">Nhà Cung Cấp</label>
+                <label class="fw-bold small text-secondary mb-1">Nhà cung cấp</label>
                 <input type="text" class="form-control bg-light" value="{{ $catalog->supplier->name ?? 'N/A' }}" readonly>
                 <input type="hidden" name="supplier_id" value="{{ $catalog->supplier_id }}">
             </div>
@@ -57,7 +67,7 @@
                 $currentLoc = $catalog->products->first() && $catalog->products->first()->location ? $catalog->products->first()->location : null;
             @endphp
             <div class="mb-3 smart-input-container">
-                <label class="fw-bold small text-secondary mb-1">Vị Trí Kệ (Đổi hàng loạt cho hàng trong kho)</label>
+                <label class="fw-bold small text-secondary mb-1">Vị trí kệ (đổi hàng loạt cho hàng trong kho)</label>
                 <input type="text" id="loc_display_input" class="form-control smart-input" placeholder="Gõ tìm kiếm hoặc click để chọn kệ..." value="{{ $currentLoc ? $currentLoc->shelf_name : '' }}" autocomplete="off">
                 <input type="hidden" name="location_id" id="loc_hidden_input" value="{{ $currentLoc ? $currentLoc->id : '' }}">
                 
@@ -65,28 +75,28 @@
                     @foreach($locations as $l) 
                         <div class="smart-option" data-id="{{ $l->id }}">{{ $l->shelf_name }}</div> 
                     @endforeach
-                    <div class="smart-option smart-add-new d-none">➕ Thêm mới kệ: <span class="new-text"></span></div>
+                    <div class="smart-option smart-add-new d-none"><i class="bi bi-plus-circle me-1"></i>Thêm mới kệ: <span class="new-text"></span></div>
                 </div>
-                <small class="text-muted d-block mt-1">💡 Khi chọn vị trí mới, toàn bộ hàng thuộc mẫu này đang có trong kho sẽ được chuyển sang vị trí vừa chọn.</small>
+                <small class="text-muted d-block mt-1">Khi chọn vị trí mới, toàn bộ hàng thuộc mẫu này đang có trong kho sẽ được chuyển sang vị trí vừa chọn.</small>
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">Giá Sỉ (Wholesale Price)</label>
+                <label class="fw-bold small text-secondary mb-1">Giá sỉ</label>
                 <input type="number" step="0.01" name="wholesale_price" class="form-control" value="{{ old('wholesale_price', $catalog->wholesale_price) }}">
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">% Biên Đại Lý (Agency Margin %)</label>
+                <label class="fw-bold small text-secondary mb-1">% biên đại lý</label>
                 <input type="number" step="0.01" name="agency_margin" class="form-control" value="{{ old('agency_margin', $catalog->agency_margin) }}">
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">% Biên Bán Lẻ (Profit Margin %)</label>
+                <label class="fw-bold small text-secondary mb-1">% biên bán lẻ</label>
                 <input type="number" step="0.01" name="profit_margin" class="form-control" value="{{ old('profit_margin', $catalog->profit_margin) }}">
             </div>
 
             <button type="submit" class="btn btn-primary btn-lg w-100 mt-2 py-2 fw-bold shadow-sm">
-                💾 CẬP NHẬT THAY ĐỔI
+                <i class="bi bi-save me-1"></i>Cập nhật thay đổi
             </button>
         </form>
     </div>
@@ -166,7 +176,7 @@ $(document).ready(function() {
                     let newOption = `<div class="smart-option" data-id="${res.data.id}">${res.data.shelf_name}</div>`;
                     $menu.prepend(newOption);
                     $menu.removeClass('show');
-                    alert('✅ Đã tạo mới kệ: ' + res.data.shelf_name);
+                    alert('Đã tạo mới kệ: ' + res.data.shelf_name);
                 }
             },
             error: function(xhr) {
@@ -174,7 +184,7 @@ $(document).ready(function() {
                 if (xhr.status === 422 && xhr.responseJSON.errors && xhr.responseJSON.errors.shelf_name) {
                     msg = xhr.responseJSON.errors.shelf_name[0];
                 }
-                alert('❌ ' + msg);
+                alert(msg);
             }
         });
     });

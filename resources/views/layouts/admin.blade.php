@@ -147,6 +147,7 @@
                 $canExportStock = $navUser?->canExportStock();
                 $canManageUsers = $navUser?->canManageUsers();
                 $canManageSettings = $navUser?->canManageSettings();
+                $canManageMasterData = $navUser?->canManageMasterData();
                 $canViewFinancialReports = $navUser?->canViewFinancialReports();
             @endphp
 
@@ -195,7 +196,7 @@
                     </a>
                     <ul class="collapse submenu" id="productSubmenu">
                         <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
-                        @if($isAdmin)
+                        @if($canManageMasterData)
                             <li><a href="{{ route('product-catalogs.index') }}" class="nav-link {{ request()->routeIs('product-catalogs.*') ? 'active' : '' }}">Danh mục</a></li>
                         @endif
                         @if($isAdmin)
@@ -206,7 +207,7 @@
 
                 @if($canImportStock || $canExportStock || $isAdmin || $navUser?->isWarehouseManager())
                 <li class="nav-item">
-                    <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
+                    <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || ($canManageMasterData && (request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*'))) ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
                         <div><i class="bi bi-archive-fill menu-icon"></i>Quản lý kho</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
@@ -222,20 +223,18 @@
                             <li><a href="#" class="nav-link">Tồn kho</a></li>
                         @endif
                         
-                        @if($isAdmin || $navUser?->isWarehouseManager())
+                        @if($canManageMasterData)
                         <li class="nav-item">
                             <a href="#changeInfoSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#changeInfoSubmenu" role="button" aria-expanded="false" aria-controls="changeInfoSubmenu" style="padding-left: 1.85rem; font-size: 0.85rem;">
                                 <div><i class="bi bi-pencil-square menu-icon" style="font-size: 1rem;"></i>Thay đổi thông tin kho</div>
                                 <i class="bi bi-chevron-down arrow-icon" style="font-size: 0.65rem;"></i>
                             </a>
                             <ul class="collapse submenu" id="changeInfoSubmenu">
-                                @if($isAdmin)
                                 <li>
                                     <a href="{{ url('/product-catalogs') }}" class="nav-link {{ request()->is('product-catalogs*') ? 'active' : '' }}" style="padding-left: 2.85rem; font-size: 0.8rem;">
                                         <i class="bi bi-dot me-1"></i>Sản phẩm
                                     </a>
                                 </li>
-                                @endif
                                 <li>
                                     <a href="{{ url('/suppliers') }}" class="nav-link {{ request()->is('suppliers*') ? 'active' : '' }}" style="padding-left: 2.85rem; font-size: 0.8rem;">
                                         <i class="bi bi-dot me-1"></i>Nhà cung cấp

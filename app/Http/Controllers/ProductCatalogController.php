@@ -9,11 +9,18 @@ use App\Models\Location;
 
 class ProductCatalogController extends Controller
 {
+    private function authorizeMasterData(): void
+    {
+        abort_unless(auth()->user()?->canManageMasterData(), 403, 'Bạn không có quyền truy cập chức năng này.');
+    }
+
     /**
      * [1] Hiển thị danh sách sản phẩm mẫu
      */
     public function index()
     {
+        $this->authorizeMasterData();
+
         // Eager Loading 'supplier' và 'products.location' để lấy thông tin vị trí từ sản phẩm thực tế
         $catalogs = ProductCatalog::with(['supplier', 'products.location'])->latest()->get();
         $suppliers = Supplier::all();
@@ -21,11 +28,22 @@ class ProductCatalogController extends Controller
         return view('product-catalogs.index', compact('catalogs', 'suppliers'));
     }
 
+    public function create()
+    {
+        $this->authorizeMasterData();
+
+        $suppliers = Supplier::orderBy('name')->get();
+
+        return view('product-catalogs.create', compact('suppliers'));
+    }
+
     /**
      * [2] Hiển thị form chỉnh sửa sản phẩm mẫu
      */
     public function edit($id)
     {
+        $this->authorizeMasterData();
+
         // Nạp thêm products để kiểm tra vị trí hiện tại của hàng trong kho
         $catalog = ProductCatalog::with('products')->findOrFail($id);
         $suppliers = Supplier::all();
@@ -34,11 +52,20 @@ class ProductCatalogController extends Controller
         return view('product-catalogs.edit', compact('catalog', 'suppliers', 'locations'));
     }
 
+    public function show($id)
+    {
+        $this->authorizeMasterData();
+
+        return redirect()->route('product-catalogs.edit', $id);
+    }
+
     /**
      * [3] Thêm mới sản phẩm mẫu vào Database (Tự động tính giá theo %)
      */
     public function store(Request $request)
     {
+        $this->authorizeMasterData();
+
         $request->validate([
             'product_name' => 'required',
             'supplier_id' => 'required',
@@ -69,6 +96,8 @@ class ProductCatalogController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->authorizeMasterData();
+
         $catalog = ProductCatalog::with('products')->findOrFail($id);
 
         $request->validate([
@@ -106,6 +135,8 @@ class ProductCatalogController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorizeMasterData();
+
         $catalog = ProductCatalog::findOrFail($id);
         $catalog->delete();
 

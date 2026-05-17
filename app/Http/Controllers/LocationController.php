@@ -7,13 +7,27 @@ use App\Models\Location;
 
 class LocationController extends Controller
 {
+    private function authorizeMasterData(): void
+    {
+        abort_unless(auth()->user()?->canManageMasterData(), 403, 'Bạn không có quyền truy cập chức năng này.');
+    }
+
     /**
      * [1] Hiển thị danh sách vị trí kệ
      */
     public function index()
     {
+        $this->authorizeMasterData();
+
         $locations = Location::latest()->get();
         return view('locations.index', compact('locations'));
+    }
+
+    public function create()
+    {
+        $this->authorizeMasterData();
+
+        return view('locations.create');
     }
 
     /**
@@ -21,6 +35,8 @@ class LocationController extends Controller
      */
     public function store(Request $request)
     {
+        $this->authorizeMasterData();
+
         $request->validate([
             'shelf_name' => 'required|unique:locations,shelf_name'
         ], [
@@ -46,8 +62,26 @@ class LocationController extends Controller
     /**
      * [3] Cập nhật thông tin vị trí kệ
      */
+    public function edit($id)
+    {
+        $this->authorizeMasterData();
+
+        $location = Location::findOrFail($id);
+
+        return view('locations.edit', compact('location'));
+    }
+
+    public function show($id)
+    {
+        $this->authorizeMasterData();
+
+        return redirect()->route('locations.edit', $id);
+    }
+
     public function update(Request $request, $id)
     {
+        $this->authorizeMasterData();
+
         $location = Location::findOrFail($id);
 
         $request->validate([
@@ -68,6 +102,8 @@ class LocationController extends Controller
      */
     public function destroy($id)
     {
+        $this->authorizeMasterData();
+
         $location = Location::findOrFail($id);
 
         // Chặn xóa nếu trong kệ vẫn còn sản phẩm
