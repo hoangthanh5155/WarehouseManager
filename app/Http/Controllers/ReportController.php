@@ -73,6 +73,7 @@ class ReportController extends Controller
             ->whereBetween('occurred_at', [$startDate, $endDate])
             ->when($request->filled('movement_type') && in_array($request->query('movement_type'), ['import', 'export'], true), fn ($query) => $query->where('movement_type', $request->query('movement_type')))
             ->when($request->filled('serial_number'), fn ($query) => $query->where('serial_number', 'like', '%' . $request->query('serial_number') . '%'))
+            ->when($request->filled('product_catalog_id'), fn ($query) => $query->where('product_catalog_id', $request->query('product_catalog_id')))
             ->when($request->filled('product_name'), function ($query) use ($request) {
                 $query->whereHas('productCatalog', fn ($productQuery) => $productQuery->where('product_name', 'like', '%' . $request->query('product_name') . '%'));
             })
@@ -124,9 +125,91 @@ class ReportController extends Controller
         ));
     }
 
-    public function inventorySummary()
+    public function inventorySummary(Request $request)
     {
-        return view('reports.inventory_summary');
+        $user = $request->user();
+        $canViewCost = $user?->canViewCostPrices();
+        $startDate = $request->filled('start_date') ? Carbon::parse($request->query('start_date'))->startOfDay() : now()->startOfMonth();
+        $endDate = $request->filled('end_date') ? Carbon::parse($request->query('end_date'))->endOfDay() : now()->endOfDay();
+
+        if ($endDate->lt($startDate)) {
+            [$startDate, $endDate] = [$endDate->copy()->startOfDay(), $startDate->copy()->endOfDay()];
+        }
+
+        if (!$this->warehouseHistorySchemaReady()) {
+            return view('reports.inventory_summary_uninitialized', compact('startDate', 'endDate'));
+        }
+
+        $openingSubquery = StockMovement::query()
+            ->select('product_catalog_id')
+            ->selectRaw("COALESCE(SUM(CASE WHEN movement_type = 'import' THEN quantity WHEN movement_type = 'export' THEN -quantity ELSE 0 END), 0) as opening_qty")
+            ->where('occurred_at', '<', $startDate)
+            ->groupBy('product_catalog_id');
+
+        $periodSubquery = StockMovement::query()
+            ->select('product_catalog_id')
+            ->selectRaw("COALESCE(SUM(CASE WHEN movement_type = 'import' THEN quantity ELSE 0 END), 0) as imported_qty")
+            ->selectRaw("COALESCE(SUM(CASE WHEN movement_type = 'export' THEN quantity ELSE 0 END), 0) as exported_qty")
+            ->whereBetween('occurred_at', [$startDate, $endDate])
+            ->groupBy('product_catalog_id');
+
+        $currentStockSubquery = DB::table('products')
+            ->select('product_catalog_id')
+            ->selectRaw('COUNT(*) as current_stock_qty')
+            ->where('status', 1)
+            ->groupBy('product_catalog_id');
+
+        $summaryQuery = DB::table('product_catalogs')
+            ->leftJoin('suppliers', 'product_catalogs.supplier_id', '=', 'suppliers.id')
+            ->leftJoinSub($openingSubquery, 'opening', 'opening.product_catalog_id', '=', 'product_catalogs.id')
+            ->leftJoinSub($periodSubquery, 'period_movements', 'period_movements.product_catalog_id', '=', 'product_catalogs.id')
+            ->leftJoinSub($currentStockSubquery, 'current_stock', 'current_stock.product_catalog_id', '=', 'product_catalogs.id')
+            ->select([
+                'product_catalogs.id',
+                'product_catalogs.product_name',
+                'product_catalogs.wholesale_price',
+                'suppliers.name as supplier_name',
+            ])
+            ->selectRaw('COALESCE(opening.opening_qty, 0) as opening_qty')
+            ->selectRaw('COALESCE(period_movements.imported_qty, 0) as imported_qty')
+            ->selectRaw('COALESCE(period_movements.exported_qty, 0) as exported_qty')
+            ->selectRaw('(COALESCE(opening.opening_qty, 0) + COALESCE(period_movements.imported_qty, 0) - COALESCE(period_movements.exported_qty, 0)) as closing_qty')
+            ->selectRaw('COALESCE(current_stock.current_stock_qty, 0) as current_stock_qty')
+            ->when($request->filled('product_name'), fn ($query) => $query->where('product_catalogs.product_name', 'like', '%' . $request->query('product_name') . '%'))
+            ->when($request->filled('supplier_id'), fn ($query) => $query->where('product_catalogs.supplier_id', $request->query('supplier_id')))
+            ->where(function ($query) {
+                $query
+                    ->whereNotNull('opening.product_catalog_id')
+                    ->orWhereNotNull('period_movements.product_catalog_id')
+                    ->orWhereNotNull('current_stock.product_catalog_id');
+            });
+
+        $summaryRows = (clone $summaryQuery)->get();
+
+        $rows = $summaryQuery
+            ->orderBy('product_catalogs.product_name')
+            ->paginate(50)
+            ->withQueryString();
+
+        $totals = [
+            'product_count' => $rows->total(),
+            'opening_qty' => $summaryRows->sum('opening_qty'),
+            'imported_qty' => $summaryRows->sum('imported_qty'),
+            'exported_qty' => $summaryRows->sum('exported_qty'),
+            'closing_qty' => $summaryRows->sum('closing_qty'),
+            'closing_value' => $summaryRows->sum(fn ($row) => (float) $row->closing_qty * (float) $row->wholesale_price),
+        ];
+
+        $suppliers = DB::table('suppliers')->orderBy('name')->get(['id', 'name']);
+
+        return view('reports.inventory_summary', compact(
+            'startDate',
+            'endDate',
+            'rows',
+            'totals',
+            'suppliers',
+            'canViewCost'
+        ));
     }
 
     public function importVoucherDetail(ImportVoucher $importVoucher)
