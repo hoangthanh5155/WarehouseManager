@@ -161,6 +161,7 @@
 </style>
 
 @php
+    $isOperationalDashboard = $isOperationalDashboard ?? false;
     $money = fn ($value) => number_format((float) $value) . ' đ';
     $compactMoney = function ($value) {
         $value = (float) $value;
@@ -175,7 +176,7 @@
         }
         return number_format($value);
     };
-    $sevenDayTotal = $sevenDayRevenue->sum('revenue');
+    $sevenDayTotal = isset($sevenDayRevenue) ? $sevenDayRevenue->sum('revenue') : 0;
 @endphp
 
 <div class="overview-shell container-fluid px-1 px-md-2 mb-5">
@@ -200,6 +201,64 @@
         </div>
     </div>
 
+    @if($isOperationalDashboard)
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="overview-card overview-kpi">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="overview-icon bg-success-subtle text-success"><i class="bi bi-boxes"></i></div>
+                        <div><div class="overview-label">Sản phẩm tồn kho</div><div class="overview-value">{{ number_format($totalInStock) }}</div><div class="overview-note mt-1">SN đang ở trạng thái tồn</div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="overview-card overview-kpi">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="overview-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-triangle"></i></div>
+                        <div><div class="overview-label">Sản phẩm sắp hết</div><div class="overview-value">{{ number_format($lowStockProducts) }}</div><div class="overview-note mt-1">Tồn <= {{ $lowStockThreshold }}</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <div class="overview-card p-4 h-100">
+                    <h5 class="fw-bold text-dark mb-1">Điểm nổi bật kho hàng</h5>
+                    <div class="overview-note mb-3">Không hiển thị doanh thu, giá vốn hoặc giá trị tồn kho.</div>
+                    <div class="fw-bold small text-uppercase text-danger mb-2">Sắp hết hàng</div>
+                    @forelse($lowStockList as $item)
+                        <div class="metric-row"><span class="fw-bold text-truncate">{{ $item->product_name }}</span><strong>{{ number_format($item->stock_count) }}</strong></div>
+                    @empty
+                        <div class="empty-state">Không có nhóm hàng sắp hết.</div>
+                    @endforelse
+                    <div class="fw-bold small text-uppercase text-primary mt-3 mb-2">Tồn kho nhiều</div>
+                    @forelse($highStockProducts as $item)
+                        <div class="metric-row"><span class="fw-bold text-truncate">{{ $item->product_name }}</span><strong>{{ number_format($item->stock_count) }}</strong></div>
+                    @empty
+                        <div class="empty-state">Chưa có dữ liệu tồn kho.</div>
+                    @endforelse
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="overview-card p-4 h-100">
+                    <h5 class="fw-bold text-dark mb-1">Hoạt động gần đây</h5>
+                    <div class="overview-note mb-3">Phiếu xuất và nhập kho mới nhất.</div>
+                    @forelse($recentVouchers as $voucher)
+                        <div class="activity-item"><div class="activity-icon bg-primary-subtle text-primary"><i class="bi bi-receipt"></i></div><div><strong class="text-primary">{{ $voucher->export_code }}</strong><div class="text-muted small">{{ $voucher->buyer_name ?: $voucher->company_name ?: 'N/A' }}</div></div></div>
+                    @empty
+                    @endforelse
+                    @forelse($recentImports as $item)
+                        <div class="activity-item"><div class="activity-icon bg-success-subtle text-success"><i class="bi bi-box-arrow-in-down"></i></div><div><strong>{{ $item->productCatalog->product_name ?? 'N/A' }}</strong><div class="text-muted small">{{ $item->supplier->name ?? 'N/A' }} · {{ $item->location->shelf_name ?? 'N/A' }}</div></div></div>
+                    @empty
+                    @endforelse
+                    @if($recentVouchers->isEmpty() && $recentImports->isEmpty())
+                        <div class="empty-state">Chưa có hoạt động gần đây.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @else
     <div class="d-none d-md-block">
         <div class="row g-3 mb-3">
             <div class="col-md-6 col-xl-3">
@@ -518,8 +577,10 @@
             </section>
         </div>
     </div>
+    @endif
 </div>
 
+@unless($isOperationalDashboard)
 <script type="application/json" id="dashboardRevenueChartData">
     {!! json_encode([
         'labels' => $sevenDayChartLabels,
@@ -527,8 +588,11 @@
         'hasData' => $hasSevenDayRevenue,
     ], JSON_UNESCAPED_UNICODE) !!}
 </script>
+@endunless
 @endsection
 
+@unless($isOperationalDashboard)
 @push('scripts')
     @vite(['resources/js/dashboard/overview.js'])
 @endpush
+@endunless

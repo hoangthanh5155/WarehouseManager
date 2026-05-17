@@ -18,11 +18,11 @@ return new class extends Migration
             $table->string('export_type')->default('normal'); // 'normal' (Xuất thường) hoặc 'system' (Đơn hệ thống)
             $table->string('customer_type')->default('retail'); // 'retail' (Giá lẻ) hoặc 'agency' (Giá đại lý)
 
-            // 🏪 Thông tin bên bán (Ghi đè linh hoạt khi in)
-            $table->string('seller_name')->default('CÔNG TY TNHH PHÁT TRIỂN CÔNG NGHỆ THÁI SƠN');
-            $table->string('seller_tax_code')->default('0101300842');
-            $table->string('seller_address')->default('B1-Tuổi trẻ, Hoàng Quốc Việt, Cầu Giấy, Hà Nội');
-            $table->string('seller_phone')->default('04.37545222');
+            // 🏪 Thông tin bên bán snapshot từ hồ sơ công ty/kho
+            $table->string('seller_name')->nullable();
+            $table->string('seller_tax_code')->nullable();
+            $table->string('seller_address')->nullable();
+            $table->string('seller_phone')->nullable();
 
             // 🙋 Thông tin người mua (Thừa hưởng từ đơn chính nếu là đơn mở rộng)
             $table->unsignedBigInteger('customer_id')->nullable();

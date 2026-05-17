@@ -22,6 +22,14 @@ class ProductController extends Controller
         }
 
         $suppliers = Supplier::orderBy('name')->get();
+        $relations = ['supplier', 'location'];
+        if ($request->user()?->canViewCostPrices()) {
+            $relations[] = 'productCatalog';
+        } else {
+            $relations['productCatalog'] = function ($query) {
+                $query->select('id', 'product_name', 'retail_price', 'agency_price');
+            };
+        }
 
         $productsQuery = Product::query()
             ->leftJoin('product_catalogs as catalogs', 'products.product_catalog_id', '=', 'catalogs.id')
@@ -33,7 +41,7 @@ class ProductController extends Controller
                 DB::raw('MAX(products.created_at) as latest_imported_at'),
                 DB::raw('MAX(catalogs.retail_price) as sort_retail_price')
             )
-            ->with(['supplier', 'location', 'productCatalog'])
+            ->with($relations)
             ->where('products.status', 1)
             ->when($supplierId, function ($query, $supplierId) {
                 return $query->where('products.supplier_id', $supplierId);
@@ -58,6 +66,8 @@ class ProductController extends Controller
     // [2] Xem chi tiết 1 sản phẩm & Cập nhật giá đa cấp thông minh theo %
     public function showCatalog(Request $request, $id)
     {
+        abort_unless($request->user()?->canAccessFullProductDetail(), 403);
+
         $catalog = ProductCatalog::findOrFail($id);
 
         if ($request->isMethod('post') || $request->isMethod('put')) {
@@ -263,11 +273,16 @@ class ProductController extends Controller
             ->latest('id')
             ->first();
 
-        return response()->json([
+        $payload = [
             'status' => 'success',
-            'wholesale_price' => (float) $catalog->wholesale_price,
             'retail_price' => (float) $catalog->retail_price,
             'location' => ($lastProduct && $lastProduct->location) ? $lastProduct->location->shelf_name : ''
-        ]);
+        ];
+
+        if ($request->user()?->canViewCostPrices()) {
+            $payload['wholesale_price'] = (float) $catalog->wholesale_price;
+        }
+
+        return response()->json($payload);
     }
 }

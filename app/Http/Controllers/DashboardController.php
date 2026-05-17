@@ -12,6 +12,57 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        $user = auth()->user();
+        abort_unless($user?->canViewOperationsDashboard(), 403);
+
+        if (!$user->canViewFinancialReports()) {
+            $totalInStock = Product::where('status', 1)->count();
+            $lowStockThreshold = 3;
+            $lowStockProducts = Product::query()
+                ->select('product_catalog_id', DB::raw('count(*) as stock_count'))
+                ->where('status', 1)
+                ->groupBy('product_catalog_id')
+                ->having('stock_count', '<=', $lowStockThreshold)
+                ->get()
+                ->count();
+
+            $recentVouchers = ExportVoucher::orderByDesc('exported_at')->limit(6)->get();
+            $recentImports = Product::with(['productCatalog', 'supplier', 'location'])
+                ->latest()
+                ->limit(6)
+                ->get();
+
+            $stockBaseQuery = Product::query()
+                ->join('product_catalogs', 'products.product_catalog_id', '=', 'product_catalogs.id')
+                ->leftJoin('suppliers', 'product_catalogs.supplier_id', '=', 'suppliers.id')
+                ->where('products.status', 1)
+                ->groupBy('products.product_catalog_id', 'product_catalogs.product_name', 'suppliers.name')
+                ->selectRaw('products.product_catalog_id, product_catalogs.product_name, suppliers.name as supplier_name, COUNT(*) as stock_count');
+
+            $lowStockList = (clone $stockBaseQuery)
+                ->having('stock_count', '<=', $lowStockThreshold)
+                ->orderBy('stock_count')
+                ->orderBy('product_catalogs.product_name')
+                ->limit(5)
+                ->get();
+
+            $highStockProducts = (clone $stockBaseQuery)
+                ->orderByDesc('stock_count')
+                ->limit(5)
+                ->get();
+
+            return view('dashboard.index', [
+                'isOperationalDashboard' => true,
+                'totalInStock' => $totalInStock,
+                'lowStockProducts' => $lowStockProducts,
+                'lowStockThreshold' => $lowStockThreshold,
+                'recentVouchers' => $recentVouchers,
+                'recentImports' => $recentImports,
+                'lowStockList' => $lowStockList,
+                'highStockProducts' => $highStockProducts,
+            ]);
+        }
+
         $monthStart = Carbon::now()->startOfMonth();
         $monthEnd = Carbon::now()->endOfMonth();
 

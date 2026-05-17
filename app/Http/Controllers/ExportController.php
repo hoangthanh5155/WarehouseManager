@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\CompanyProfile;
 use App\Models\Customer;
 use App\Models\ExportVoucher;
 use App\Models\ProductCatalog;
@@ -62,14 +63,19 @@ class ExportController extends Controller
 
             $catalog = ProductCatalog::find($productId);
 
-            return response()->json([
+            $payload = [
                 'success' => true,
                 'data' => [
                     'id' => $item->id,
                     'serial_number' => $item->serial_number,
-                    'wholesale_price' => $catalog ? (float) $catalog->wholesale_price : 0
                 ]
-            ]);
+            ];
+
+            if ($request->user()?->canViewCostPrices()) {
+                $payload['data']['wholesale_price'] = $catalog ? (float) $catalog->wholesale_price : 0;
+            }
+
+            return response()->json($payload);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -100,10 +106,13 @@ class ExportController extends Controller
         DB::beginTransaction();
         try {
             $now = now();
-            $sellerName = $request->filled('seller_name') ? $request->seller_name : config('app.name');
-            $sellerTaxCode = $request->filled('seller_tax_code') ? $request->seller_tax_code : '';
-            $sellerAddress = $request->filled('seller_address') ? $request->seller_address : '';
-            $sellerPhone = $request->filled('seller_phone') ? $request->seller_phone : '';
+            $companyProfile = CompanyProfile::current();
+            $sellerName = $companyProfile?->company_name ?: CompanyProfile::fallbackName();
+            $sellerTaxCode = $companyProfile?->tax_code ?: '';
+            $sellerAddress = $companyProfile?->address ?: '';
+            $sellerPhone = $companyProfile?->hotline ?: '';
+            $sellerBankAccount = $companyProfile?->bank_account ?: '';
+            $sellerBankName = $companyProfile?->bank_name ?: '';
             
             $customerId = $request->customer_id;
             if (!$customerId && !empty($request->buyer_name)) {
@@ -146,6 +155,8 @@ class ExportController extends Controller
                 'seller_tax_code' => $sellerTaxCode,
                 'seller_address' => $sellerAddress,
                 'seller_phone' => $sellerPhone,
+                'seller_bank_account' => $sellerBankAccount,
+                'seller_bank_name' => $sellerBankName,
                 'customer_id' => $customerId,
                 'buyer_name' => $request->buyer_name,
                 'company_name' => $request->company_name,
@@ -204,6 +215,8 @@ class ExportController extends Controller
                         'seller_tax_code' => $sellerTaxCode,
                         'seller_address' => $sellerAddress,
                         'seller_phone' => $sellerPhone,
+                        'seller_bank_account' => $sellerBankAccount,
+                        'seller_bank_name' => $sellerBankName,
                         'customer_id' => $customerId,
                         'buyer_name' => $request->buyer_name,
                         'company_name' => $request->company_name,

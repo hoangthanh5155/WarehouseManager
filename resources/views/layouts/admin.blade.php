@@ -133,41 +133,60 @@
                         <span class="text-white fw-bold fs-5">P</span>
                     </div>
                     <div>
-                        <h1>WMS</h1>
+                        <h1>{{ $systemBrandName }}</h1>
                         <span>Hệ thống quản lý</span>
                     </div>
                 </div>
             </div>
             
+            @php
+                $navUser = auth()->user();
+                $isAdmin = $navUser?->isAdmin();
+                $canViewDashboard = $navUser?->canViewOperationsDashboard();
+                $canImportStock = $navUser?->canImportStock();
+                $canExportStock = $navUser?->canExportStock();
+                $canManageUsers = $navUser?->canManageUsers();
+                $canManageSettings = $navUser?->canManageSettings();
+                $canViewFinancialReports = $navUser?->canViewFinancialReports();
+            @endphp
+
             <ul class="sidebar-nav" id="sidebarMenu">
-                <li class="nav-item">
-                    <a href="{{ url('/dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
-                        <div><i class="bi bi-grid-1x2-fill menu-icon"></i>Tổng quan</div>
-                    </a>
-                </li>
+                @if($canViewDashboard)
+                    <li class="nav-item">
+                        <a href="{{ url('/dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
+                            <div><i class="bi bi-grid-1x2-fill menu-icon"></i>Tổng quan</div>
+                        </a>
+                    </li>
+                @endif
 
-                <li class="nav-item">
-                    <a href="#userSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#userSubmenu" role="button" aria-expanded="false" aria-controls="userSubmenu">
-                        <div><i class="bi bi-people-fill menu-icon"></i>Quản lý người dùng</div>
-                        <i class="bi bi-chevron-down arrow-icon"></i>
-                    </a>
-                    <ul class="collapse submenu" id="userSubmenu">
-                        <li><a href="#" class="nav-link">Danh sách user</a></li>
-                        <li><a href="#" class="nav-link">Phân quyền</a></li>
-                    </ul>
-                </li>
+                @if(auth()->user()?->canManageUsers())
+                    <li class="nav-item">
+                        <a href="#userSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('users.*') ? 'active' : '' }}" data-sidebar-target="#userSubmenu" role="button" aria-expanded="false" aria-controls="userSubmenu">
+                            <div><i class="bi bi-people-fill menu-icon"></i>Quản lý người dùng</div>
+                            <i class="bi bi-chevron-down arrow-icon"></i>
+                        </a>
+                        <ul class="collapse submenu" id="userSubmenu">
+                            <li><a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.index') ? 'active' : '' }}">Danh sách người dùng</a></li>
+                            <li><a href="{{ route('users.create') }}" class="nav-link {{ request()->routeIs('users.create') ? 'active' : '' }}">Tạo tài khoản</a></li>
+                        </ul>
+                    </li>
+                @endif
 
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div><i class="bi bi-gear-fill menu-icon"></i>Thiết lập hệ thống</div>
-                    </a>
-                </li>
+                @if(auth()->user()?->isAdmin())
+                    <li class="nav-item">
+                        <a href="{{ route('settings.company.edit') }}" class="nav-link {{ request()->routeIs('settings.company.*') ? 'active' : '' }}">
+                            <div><i class="bi bi-gear-fill menu-icon"></i>Thiết lập hệ thống</div>
+                        </a>
+                    </li>
+                @endif
 
-                <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <div><i class="bi bi-person-lines-fill menu-icon"></i>Quản lý khách hàng</div>
-                    </a>
-                </li>
+                @if($isAdmin)
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <div><i class="bi bi-person-lines-fill menu-icon"></i>Quản lý khách hàng</div>
+                        </a>
+                    </li>
+                @endif
 
                 <li class="nav-item">
                     <a href="#productSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') ? 'active' : '' }}" data-sidebar-target="#productSubmenu" role="button" aria-expanded="false" aria-controls="productSubmenu">
@@ -176,33 +195,47 @@
                     </a>
                     <ul class="collapse submenu" id="productSubmenu">
                         <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
-                        <li><a href="#" class="nav-link">Danh mục</a></li>
-                        <li><a href="#" class="nav-link">Bảng giá</a></li>
+                        @if($isAdmin)
+                            <li><a href="{{ route('product-catalogs.index') }}" class="nav-link {{ request()->routeIs('product-catalogs.*') ? 'active' : '' }}">Danh mục</a></li>
+                        @endif
+                        @if($isAdmin)
+                            <li><a href="#" class="nav-link">Bảng giá</a></li>
+                        @endif
                     </ul>
                 </li>
 
+                @if($canImportStock || $canExportStock || $isAdmin || $navUser?->isWarehouseManager())
                 <li class="nav-item">
                     <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
                         <div><i class="bi bi-archive-fill menu-icon"></i>Quản lý kho</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
                     <ul class="collapse submenu" id="warehouseSubmenu">
-                        <li><a href="{{ url('/import') }}" class="nav-link {{ request()->is('import') ? 'active' : '' }}">Nhập kho</a></li>
-                        <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
-                        <li><a href="#" class="nav-link">Truy vết Serial</a></li>
-                        <li><a href="#" class="nav-link">Tồn kho</a></li>
+                        @if($canImportStock)
+                            <li><a href="{{ url('/import') }}" class="nav-link {{ request()->is('import') ? 'active' : '' }}">Nhập kho</a></li>
+                        @endif
+                        @if($canExportStock)
+                            <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
+                        @endif
+                        @if($isAdmin)
+                            <li><a href="#" class="nav-link">Truy vết Serial</a></li>
+                            <li><a href="#" class="nav-link">Tồn kho</a></li>
+                        @endif
                         
+                        @if($isAdmin || $navUser?->isWarehouseManager())
                         <li class="nav-item">
                             <a href="#changeInfoSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*') ? 'active' : '' }}" data-sidebar-target="#changeInfoSubmenu" role="button" aria-expanded="false" aria-controls="changeInfoSubmenu" style="padding-left: 1.85rem; font-size: 0.85rem;">
                                 <div><i class="bi bi-pencil-square menu-icon" style="font-size: 1rem;"></i>Thay đổi thông tin kho</div>
                                 <i class="bi bi-chevron-down arrow-icon" style="font-size: 0.65rem;"></i>
                             </a>
                             <ul class="collapse submenu" id="changeInfoSubmenu">
+                                @if($isAdmin)
                                 <li>
                                     <a href="{{ url('/product-catalogs') }}" class="nav-link {{ request()->is('product-catalogs*') ? 'active' : '' }}" style="padding-left: 2.85rem; font-size: 0.8rem;">
                                         <i class="bi bi-dot me-1"></i>Sản phẩm
                                     </a>
                                 </li>
+                                @endif
                                 <li>
                                     <a href="{{ url('/suppliers') }}" class="nav-link {{ request()->is('suppliers*') ? 'active' : '' }}" style="padding-left: 2.85rem; font-size: 0.8rem;">
                                         <i class="bi bi-dot me-1"></i>Nhà cung cấp
@@ -215,9 +248,12 @@
                                 </li>
                             </ul>
                         </li>
+                        @endif
                     </ul>
                 </li>
+                @endif
 
+                @if($isAdmin)
                 <li class="nav-item">
                     <a href="#financeSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#financeSubmenu" role="button" aria-expanded="false" aria-controls="financeSubmenu">
                         <div><i class="bi bi-cash-stack menu-icon"></i>Quản lý thu chi</div>
@@ -228,13 +264,17 @@
                         <li><a href="#" class="nav-link">Phiếu chi</a></li>
                     </ul>
                 </li>
+                @endif
 
+                @if($isAdmin)
                 <li class="nav-item">
                     <a href="#" class="nav-link">
                         <div><i class="bi bi-cart-fill menu-icon"></i>Quản lý bán hàng</div>
                     </a>
                 </li>
+                @endif
 
+                @if($canViewFinancialReports)
                 <li class="nav-item">
                     <a href="#reportSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('reports.*') ? 'active' : '' }}" data-sidebar-target="#reportSubmenu" role="button" aria-expanded="false" aria-controls="reportSubmenu">
                         <div><i class="bi bi-bar-chart-line-fill menu-icon"></i>Báo cáo - Thống kê</div>
@@ -245,7 +285,9 @@
                         <li><a href="#" class="nav-link">Nhập xuất tồn</a></li>
                     </ul>
                 </li>
+                @endif
 
+                @if($isAdmin)
                 <li class="nav-item">
                     <a href="#manufactureSubmenu" class="nav-link collapsed sidebar-collapse-toggle" data-sidebar-target="#manufactureSubmenu" role="button" aria-expanded="false" aria-controls="manufactureSubmenu">
                         <div><i class="bi bi-building-fill menu-icon"></i>Quản lý sản xuất</div>
@@ -256,6 +298,7 @@
                         <li><a href="#" class="nav-link">Tiến độ</a></li>
                     </ul>
                 </li>
+                @endif
             </ul>
         </nav>
 
@@ -264,13 +307,27 @@
                 <button type="button" id="menu-toggle" class="btn btn-light shadow-sm border-0 bg-white">
                     <i class="bi bi-list fs-5"></i>
                 </button>
+                <div class="d-none d-lg-block ms-3 me-auto">
+                    <div class="fw-bold text-dark" style="line-height:1;">{{ $systemBrandName }}</div>
+                    <span class="text-muted small">Hồ sơ công ty/kho</span>
+                </div>
                 
                 <div class="d-flex align-items-center gap-3">
+                    @auth
                     <div class="text-end d-none d-md-block">
-                        <div class="fw-bold fs-6 text-dark" style="line-height: 1;">System Admin</div>
-                        <span class="badge bg-success mt-1 px-2" style="font-size: 0.7rem;">Online</span>
+                        <div class="fw-bold fs-6 text-dark" style="line-height: 1;">{{ auth()->user()->displayName() }}</div>
+                        <span class="text-muted small">{{ auth()->user()->roleLabel() }}</span>
                     </div>
-                    <img src="https://ui-avatars.com/api/?name=Admin&background=0b1121&color=fff&rounded=true" alt="User" class="rounded-circle shadow-sm" width="42" height="42">
+                    <div class="bg-primary-subtle text-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width:42px;height:42px;">
+                        <i class="bi {{ auth()->user()->roleIcon() }}"></i>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}" class="m-0">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-secondary fw-bold" type="submit" title="Đăng xuất">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </form>
+                    @endauth
                 </div>
             </nav>
 

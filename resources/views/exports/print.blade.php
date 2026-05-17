@@ -160,10 +160,12 @@
     <div class="invoice-preview-container">
         @foreach($allVouchers as $index => $v)
             @php
-                $sellerName = $v->seller_name ?: config('app.name', 'WMS');
-                $sellerAddress = $v->seller_address ?: '..................................................................';
-                $sellerPhone = $v->seller_phone ?: '................................';
-                $sellerTaxCode = $v->seller_tax_code ?: '................................';
+                $sellerName = $v->seller_name ?: ($currentCompanyProfile?->company_name ?: config('app.name', 'WMS'));
+                $sellerAddress = $v->seller_address ?: ($currentCompanyProfile?->address ?: '..................................................................');
+                $sellerPhone = $v->seller_phone ?: ($currentCompanyProfile?->hotline ?: '................................');
+                $sellerTaxCode = $v->seller_tax_code ?: ($currentCompanyProfile?->tax_code ?: '................................');
+                $sellerBankAccount = $v->seller_bank_account ?: ($currentCompanyProfile?->bank_account ?: null);
+                $sellerBankName = $v->seller_bank_name ?: ($currentCompanyProfile?->bank_name ?: null);
             @endphp
             <page size="A4" class="{{ $index > 0 ? 'page-break' : '' }}">
                 
@@ -172,6 +174,9 @@
                         <h6 class="fw-bold mb-1" style="font-size: 14px;">{{ $sellerName }}</h6>
                         <p class="mb-1"><strong>Địa chỉ:</strong> {{ $sellerAddress }}</p>
                         <p class="mb-1"><strong>Điện thoại:</strong> {{ $sellerPhone }} - <strong>MST:</strong> {{ $sellerTaxCode }}</p>
+                        @if($sellerBankAccount || $sellerBankName)
+                            <p class="mb-1"><strong>TK:</strong> {{ $sellerBankAccount ?: '................................' }} {{ $sellerBankName ? '- ' . $sellerBankName : '' }}</p>
+                        @endif
                     </div>
                     <div class="col-4 text-end">
                         <p class="mb-1">Số: <strong>{{ $v->export_code ?? $v->id }}</strong></p>

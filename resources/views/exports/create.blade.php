@@ -54,7 +54,9 @@
                             <td class="text-nowrap">{{ optional($recentVoucher->exported_at)->format('d/m/Y H:i') }}</td>
                             <td class="text-end text-nowrap">
                                 <a href="{{ route('export.print', $recentVoucher->id) }}" class="btn btn-sm btn-outline-primary fw-bold">Xem hóa đơn</a>
-                                <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa thông tin khách</button>
+                                @if(auth()->user()?->canEditExportMetadata())
+                                    <button type="button" class="btn btn-sm btn-outline-secondary fw-bold" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa thông tin khách</button>
+                                @endif
                                 <a href="{{ route('export.print', ['id' => $recentVoucher->id, 'print' => 1]) }}" class="btn btn-sm btn-primary fw-bold">In lại</a>
                             </td>
                         </tr>
@@ -76,7 +78,9 @@
                     <div class="text-muted small mb-2">{{ optional($recentVoucher->exported_at)->format('d/m/Y H:i') }}</div>
                     <div class="d-flex gap-2">
                         <a href="{{ route('export.print', $recentVoucher->id) }}" class="btn btn-sm btn-outline-primary fw-bold flex-fill">Xem</a>
-                        <button type="button" class="btn btn-sm btn-outline-secondary fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa</button>
+                        @if(auth()->user()?->canEditExportMetadata())
+                            <button type="button" class="btn btn-sm btn-outline-secondary fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#editVoucherModal{{ $recentVoucher->id }}">Sửa</button>
+                        @endif
                         <a href="{{ route('export.print', ['id' => $recentVoucher->id, 'print' => 1]) }}" class="btn btn-sm btn-primary fw-bold flex-fill">In lại</a>
                     </div>
                 </div>
@@ -239,6 +243,7 @@
     </div>
 </div>
 
+@if(auth()->user()?->canEditExportMetadata())
 @foreach($recentVouchers ?? [] as $recentVoucher)
     <div class="modal fade" id="editVoucherModal{{ $recentVoucher->id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -282,6 +287,7 @@
         </div>
     </div>
 @endforeach
+@endif
 
 <div class="modal fade" id="verifySnModal" tabindex="-1" aria-labelledby="verifySnModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-lg modal-dialog-centered">

@@ -367,6 +367,9 @@
 @php
     $activeSupplierId = (string) ($supplierId ?? request('supplier_id', ''));
     $activeSort = $sort ?? request('sort', 'featured');
+    $canImportStock = auth()->user()?->canImportStock();
+    $canViewCostPrices = auth()->user()?->canViewCostPrices();
+    $canViewFullProductDetail = auth()->user()?->canAccessFullProductDetail();
     $supplierBaseQuery = $activeSort !== 'featured' ? ['sort' => $activeSort] : [];
     $sortOptions = [
         'featured' => 'Nổi bật',
@@ -386,9 +389,11 @@
                 <h3 class="lookup-title fw-bold text-dark m-0">TRA CỨU HÀNG HÓA</h3>
             </div>
 
-            <a href="{{ route('products.import') }}" class="btn btn-primary fw-bold px-3 py-2 align-self-start align-self-md-center">
-                <i class="bi bi-box-arrow-in-down me-1"></i> Nhập mới
-            </a>
+            @if($canImportStock)
+                <a href="{{ route('products.import') }}" class="btn btn-primary fw-bold px-3 py-2 align-self-start align-self-md-center">
+                    <i class="bi bi-box-arrow-in-down me-1"></i> Nhập mới
+                </a>
+            @endif
         </div>
 
         <div class="lookup-search-wrap mb-3">
@@ -465,10 +470,12 @@
                     </div>
 
                     <div class="price-panel mb-3">
-                        <div class="price-row">
-                            <span class="price-label">Giá nhập</span>
-                            <span class="price-value">{{ $pWholesale }}</span>
-                        </div>
+                        @if($canViewCostPrices)
+                            <div class="price-row">
+                                <span class="price-label">Giá nhập</span>
+                                <span class="price-value">{{ $pWholesale }}</span>
+                            </div>
+                        @endif
                         <div class="price-row">
                             <span class="price-label">Đại lý</span>
                             <span class="price-value">{{ $pAgency }}</span>
@@ -479,9 +486,11 @@
                         </div>
                     </div>
 
-                    <a href="{{ $detailUrl }}" class="btn btn-outline-primary w-100 detail-link">
-                        Xem chi tiết
-                    </a>
+                    @if($canViewFullProductDetail)
+                        <a href="{{ $detailUrl }}" class="btn btn-outline-primary w-100 detail-link">
+                            Xem chi tiết
+                        </a>
+                    @endif
                 </div>
             </article>
         @empty

@@ -18,6 +18,8 @@ class ExportVoucher extends Model
         'seller_tax_code',
         'seller_address',
         'seller_phone',
+        'seller_bank_account',
+        'seller_bank_name',
         'customer_id',
         'buyer_name',
         'company_name',
