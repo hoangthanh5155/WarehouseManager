@@ -243,7 +243,7 @@ export function initWarehouseLogic() {
 
                 if (!sn) return;
                 if (!sup || !prod || !loc) {
-                    alert("⚠️ Vui lòng điền đủ Nhà cung cấp, Sản phẩm và Vị trí kệ.");
+                    alert('Vui lòng điền đủ nhà cung cấp, sản phẩm và vị trí kệ.');
                     return;
                 }
 
@@ -276,12 +276,12 @@ export function initWarehouseLogic() {
                     if (!scanLog) return;
 
                     if (res.status === 'success') {
-                        scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-success py-2 highlight-scan">✅ Đã lưu: <b>${sn}</b></li>`);
+                        scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-success py-2 highlight-scan"><i class="bi bi-check-circle me-1"></i>Đã lưu: <b>${sn}</b></li>`);
                     } else {
-                        scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-danger py-2 highlight-scan">❌ Lỗi: <b>${sn}</b> - ${res.message}</li>`);
+                        scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-danger py-2 highlight-scan"><i class="bi bi-exclamation-triangle me-1"></i>Lỗi: <b>${sn}</b> - ${res.message}</li>`);
                     }
                 })
-                .catch(() => alert('❌ Lỗi hệ thống!'))
+                .catch(() => alert('Lỗi hệ thống, vui lòng thử lại.'))
                 .finally(() => {
                     this.readOnly = false;
                     this.value = '';
@@ -292,7 +292,7 @@ export function initWarehouseLogic() {
     }
 
     // ==========================================
-    // 5. TẠO MÃ & IN TEM
+    // 5. Tạo mã và in tem
     // ==========================================
     const formAutoSn = document.getElementById('form_auto_sn');
     if (formAutoSn) {
@@ -302,7 +302,7 @@ export function initWarehouseLogic() {
             const qtyInput = this.querySelector('input[name="quantity"]');
             
             if (qtyInput && parseInt(qtyInput.value) > 100) {
-                alert("⚠️ Để đảm bảo hiệu năng in ấn, hệ thống chỉ hỗ trợ tạo tối đa 100 tem/lần.");
+                alert('Để đảm bảo hiệu năng in ấn, hệ thống chỉ hỗ trợ tạo tối đa 100 tem mỗi lần.');
                 qtyInput.value = 100;
                 return;
             }
@@ -312,7 +312,7 @@ export function initWarehouseLogic() {
 
             if(submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '⏳ Đang tạo mã...';
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Đang tạo mã...';
             }
 
             fetch(this.getAttribute('action'), {
@@ -352,14 +352,14 @@ export function initWarehouseLogic() {
                     if(qtyInput) qtyInput.value = '';
 
                 } else {
-                    alert("❌ Server báo lỗi: " + (res.message || "Không xác định"));
+                    alert('Máy chủ báo lỗi: ' + (res.message || 'Không xác định'));
                 }
             })
-            .catch(() => alert("❌ Lỗi sinh mã SN, vui lòng thử lại!"))
+            .catch(() => alert('Lỗi sinh mã SN, vui lòng thử lại.'))
             .finally(() => {
                 if(submitBtn) {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = '🚀 TẠO MÃ & IN TEM';
+                    submitBtn.innerHTML = '<i class="bi bi-qr-code-scan me-2"></i>Tạo mã và xem tem';
                 }
             });
         });

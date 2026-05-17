@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>In Hóa Đơn Xuất Kho</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
     <style>
         /* CSS cho preview trên màn hình (Hỗ trợ cả Desktop & Mobile) */
@@ -83,7 +84,7 @@
             page-break-before: always;
         }
 
-        /* 📱 Responsive CSS: Giúp xem trên điện thoại không bị vỡ */
+        /* Responsive CSS: Giúp xem trên điện thoại không bị vỡ */
         @media screen and (max-width: 768px) {
             .invoice-preview-container {
                 padding: 5px;
@@ -111,7 +112,7 @@
             }
         }
 
-        /* 🖨️ CSS chuẩn chỉnh dành riêng cho máy in */
+        /* CSS chuẩn chỉnh dành riêng cho máy in */
         @media print {
             body {
                 background: white;
@@ -143,10 +144,10 @@
 
     <div class="text-center my-2 no-print">
         <button id="btn-print" class="btn btn-primary btn-md shadow-sm fw-bold">
-            🖨️ In lại Hóa đơn
+            <i class="bi bi-printer me-1"></i>In lại hóa đơn
         </button>
         <button id="btn-back" class="btn btn-secondary btn-md shadow-sm ms-2 fw-bold">
-            ⬅️ Quay lại
+            <i class="bi bi-arrow-left me-1"></i>Quay lại
         </button>
     </div>
 

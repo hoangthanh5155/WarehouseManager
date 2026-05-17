@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!tbody) return;
 
         if (mainVoucherItems.length === 0) {
-            tbody.innerHTML = `<tr class="empty-row-main"><td colspan="4" class="text-center py-4 text-muted">📭 Chưa có sản phẩm nào cho đơn chính.</td></tr>`;
+            tbody.innerHTML = `<tr class="empty-row-main"><td colspan="4" class="text-center py-4 text-muted"><i class="bi bi-inboxes d-block fs-3 mb-1"></i>Chưa có sản phẩm trong đơn chính.</td></tr>`;
             calculateGlobalTotal();
             return;
         }
@@ -189,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function () {
             div.style.borderLeft = "4px solid #ffc107 !important";
             div.innerHTML = `
                 <button type="button" class="btn-close position-absolute top-0 end-0 m-2 btn-remove-sub-voucher" data-index="${subIdx}"></button>
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text"></i> ĐƠN MỞ RỘNG #${subIdx + 1}</h6>
+                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-1"></i>Đơn mở rộng #${subIdx + 1}</h6>
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-md-6">
                         <select class="form-select" id="selectSubProduct-${sub.id}">
@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             verifyListArea.innerHTML = '';
 
-            let mainHtml = `<div class="mb-4"><h6 class="fw-bold text-primary"><i class="bi bi-cart-check me-2"></i>SẢN PHẨM ĐƠN CHÍNH</h6>`;
+            let mainHtml = `<div class="mb-4"><h6 class="fw-bold text-primary"><i class="bi bi-cart-check me-2"></i>Sản phẩm đơn chính</h6>`;
             mainVoucherItems.forEach((item, pIdx) => {
                 mainHtml += `
                     <div class="card mb-2 border shadow-sm p-3 bg-white">
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (subVouchers.length > 0) {
                 subVouchers.forEach((sub, subIdx) => {
                     if (sub.items.length === 0) return;
-                    let subHtml = `<div class="mb-4"><h6 class="fw-bold text-warning"><i class="bi bi-file-earmark-plus me-2"></i>ĐƠN MỞ RỘNG #${subIdx + 1}</h6>`;
+                    let subHtml = `<div class="mb-4"><h6 class="fw-bold text-warning"><i class="bi bi-file-earmark-plus me-2"></i>Đơn mở rộng #${subIdx + 1}</h6>`;
                     sub.items.forEach((item, pIdx) => {
                         subHtml += `
                             <div class="card mb-2 border shadow-sm p-3 bg-white">
@@ -478,14 +478,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     alert('Lỗi: ' + res.message);
                     btnConfirmAndSave.disabled = false;
-                    btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và In ngay`;
+                    btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
                 }
             })
             .catch(err => {
                 console.error('Chi tiết lỗi Ajax:', err);
                 alert('Có lỗi xảy ra: ' + err.message);
                 btnConfirmAndSave.disabled = false;
-                btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và In ngay`;
+                btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
             });
         });
     }
