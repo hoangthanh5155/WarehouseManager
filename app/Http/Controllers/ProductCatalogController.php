@@ -126,7 +126,7 @@ class ProductCatalogController extends Controller
         // 1. Kiểm tra nếu người dùng có chọn vị trí kệ mới thì cập nhật hàng loạt cho hàng trong kho
         if ($request->filled('location_id')) {
             $newLocationId = $request->input('location_id');
-            $catalog->products()->update(['location_id' => $newLocationId]);
+            $catalog->products()->where('status', 1)->update(['location_id' => $newLocationId]);
         }
 
         // 2. Sử dụng except() để loại bỏ location_id, tránh lỗi SQL Column not found ở bảng mẫu sản phẩm
