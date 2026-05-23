@@ -2,6 +2,8 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use App\Models\ExportVoucher;
 use App\Models\Product;
@@ -155,3 +157,241 @@ Artisan::command('stock:backfill-movements', function () {
     $this->info("Đã liên kết {$linkedExports} sản phẩm với phiếu xuất cũ.");
     return 0;
 })->purpose('Backfill stock movements for existing product serial data');
+
+Artisan::command('stock:audit-consistency', function () {
+    $this->info('Warehouse consistency audit (READ-ONLY)');
+    $this->line('No data will be changed.');
+
+    $hasStockMovements = Schema::hasTable('stock_movements');
+    $hasExportVoucherId = Schema::hasColumn('products', 'export_voucher_id');
+    $hasImportVoucherId = Schema::hasColumn('products', 'import_voucher_id');
+
+    $statusInStock = DB::table('products')->where('status', 1)->count();
+    $statusExported = DB::table('products')->where('status', 2)->count();
+
+    $missingExportVoucherQuery = DB::table('products')
+        ->where('status', 2);
+
+    if ($hasExportVoucherId) {
+        $missingExportVoucherQuery->whereNull('export_voucher_id');
+    }
+
+    $missingExportVoucherCount = (clone $missingExportVoucherQuery)->count();
+    $missingExportVoucherExamples = (clone $missingExportVoucherQuery)
+        ->select('id', 'serial_number', 'status')
+        ->orderBy('id')
+        ->limit(20)
+        ->get();
+
+    [$legacyJsonMismatchCount, $legacyJsonMismatchExamples] = auditExportVoucherItemsAgainstProducts();
+
+    $missingExportMovementCount = null;
+    $missingExportMovementExamples = collect();
+    if ($hasStockMovements && $hasExportVoucherId) {
+        $missingExportMovementQuery = DB::table('products')
+            ->whereNotNull('products.export_voucher_id')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('stock_movements')
+                    ->whereColumn('stock_movements.product_id', 'products.id')
+                    ->whereColumn('stock_movements.export_voucher_id', 'products.export_voucher_id')
+                    ->where('stock_movements.movement_type', StockMovement::TYPE_EXPORT);
+            });
+
+        $missingExportMovementCount = (clone $missingExportMovementQuery)->count();
+        $missingExportMovementExamples = (clone $missingExportMovementQuery)
+            ->select('products.id', 'products.serial_number', 'products.export_voucher_id')
+            ->orderBy('products.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $missingImportMovementCount = null;
+    $missingImportMovementExamples = collect();
+    if ($hasStockMovements && $hasImportVoucherId) {
+        $missingImportMovementQuery = DB::table('products')
+            ->whereNotNull('products.import_voucher_id')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('stock_movements')
+                    ->whereColumn('stock_movements.product_id', 'products.id')
+                    ->whereColumn('stock_movements.import_voucher_id', 'products.import_voucher_id')
+                    ->where('stock_movements.movement_type', StockMovement::TYPE_IMPORT);
+            });
+
+        $missingImportMovementCount = (clone $missingImportMovementQuery)->count();
+        $missingImportMovementExamples = (clone $missingImportMovementQuery)
+            ->select('products.id', 'products.serial_number', 'products.import_voucher_id')
+            ->orderBy('products.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $orphanMovementCount = null;
+    $orphanMovementExamples = collect();
+    if ($hasStockMovements) {
+        $orphanMovementQuery = DB::table('stock_movements')
+            ->leftJoin('products', 'products.id', '=', 'stock_movements.product_id')
+            ->whereNotNull('stock_movements.product_id')
+            ->whereNull('products.id');
+
+        $orphanMovementCount = (clone $orphanMovementQuery)->count();
+        $orphanMovementExamples = (clone $orphanMovementQuery)
+            ->select(
+                'stock_movements.id',
+                'stock_movements.product_id',
+                'stock_movements.serial_number',
+                'stock_movements.movement_type'
+            )
+            ->orderBy('stock_movements.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $exportMovementStillInStockCount = null;
+    $exportMovementStillInStockExamples = collect();
+    if ($hasStockMovements) {
+        $exportMovementStillInStockQuery = DB::table('stock_movements')
+            ->join('products', 'products.id', '=', 'stock_movements.product_id')
+            ->where('stock_movements.movement_type', StockMovement::TYPE_EXPORT)
+            ->where('products.status', 1);
+
+        $exportMovementStillInStockCount = (clone $exportMovementStillInStockQuery)->count();
+        $exportMovementStillInStockExamples = (clone $exportMovementStillInStockQuery)
+            ->select(
+                'products.id',
+                'products.serial_number',
+                'products.status',
+                'stock_movements.id as movement_id'
+            )
+            ->orderBy('stock_movements.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $this->newLine();
+    $this->table(['Check', 'Count'], [
+        ['products status = 1', $statusInStock],
+        ['products status = 2', $statusExported],
+        ['products status = 2 but missing export_voucher_id', $missingExportVoucherCount],
+        ['serials in export_vouchers.items but product status is not 2', $legacyJsonMismatchCount],
+        ['products with export_voucher_id but missing export stock_movement', formatAuditCount($missingExportMovementCount)],
+        ['products with import_voucher_id but missing import stock_movement', formatAuditCount($missingImportMovementCount)],
+        ['stock_movements pointing to missing product_id', formatAuditCount($orphanMovementCount)],
+        ['export stock_movements whose product is still status = 1', formatAuditCount($exportMovementStillInStockCount)],
+    ]);
+
+    renderAuditExamples($this, 'products status = 2 but missing export_voucher_id', $missingExportVoucherExamples, [
+        'id',
+        'serial_number',
+        'status',
+    ]);
+    renderAuditExamples($this, 'serials in export_vouchers.items but product status is not 2', $legacyJsonMismatchExamples, [
+        'serial_number',
+        'product_id',
+        'product_status',
+        'export_voucher_id',
+        'export_code',
+    ]);
+    renderAuditExamples($this, 'products with export_voucher_id but missing export stock_movement', $missingExportMovementExamples, [
+        'id',
+        'serial_number',
+        'export_voucher_id',
+    ]);
+    renderAuditExamples($this, 'products with import_voucher_id but missing import stock_movement', $missingImportMovementExamples, [
+        'id',
+        'serial_number',
+        'import_voucher_id',
+    ]);
+    renderAuditExamples($this, 'stock_movements pointing to missing product_id', $orphanMovementExamples, [
+        'id',
+        'product_id',
+        'serial_number',
+        'movement_type',
+    ]);
+    renderAuditExamples($this, 'export stock_movements whose product is still status = 1', $exportMovementStillInStockExamples, [
+        'id',
+        'serial_number',
+        'status',
+        'movement_id',
+    ]);
+
+    return 0;
+})->purpose('Read-only audit for warehouse legacy core and stock movements');
+
+function auditExportVoucherItemsAgainstProducts(): array
+{
+    $count = 0;
+    $examples = collect();
+    $seenSerials = [];
+
+    DB::table('export_vouchers')
+        ->select('id', 'export_code', 'items')
+        ->orderBy('id')
+        ->chunkById(100, function ($vouchers) use (&$count, &$examples, &$seenSerials) {
+            foreach ($vouchers as $voucher) {
+                $serials = collect(json_decode((string) $voucher->items, true) ?: [])
+                    ->flatMap(fn ($item) => $item['serials'] ?? [])
+                    ->map(fn ($serial) => trim((string) $serial))
+                    ->filter()
+                    ->unique()
+                    ->values();
+
+                if ($serials->isEmpty()) {
+                    continue;
+                }
+
+                $productsBySerial = DB::table('products')
+                    ->whereIn('serial_number', $serials)
+                    ->get(['id', 'serial_number', 'status'])
+                    ->keyBy('serial_number');
+
+                foreach ($serials as $serial) {
+                    if (isset($seenSerials[$serial])) {
+                        continue;
+                    }
+
+                    $seenSerials[$serial] = true;
+                    $product = $productsBySerial->get($serial);
+
+                    if ($product && (int) $product->status === 2) {
+                        continue;
+                    }
+
+                    $count++;
+
+                    if ($examples->count() < 20) {
+                        $examples->push((object) [
+                            'serial_number' => $serial,
+                            'product_id' => $product?->id ?: 'missing',
+                            'product_status' => $product?->status ?? 'missing',
+                            'export_voucher_id' => $voucher->id,
+                            'export_code' => $voucher->export_code,
+                        ]);
+                    }
+                }
+            }
+        }, 'id');
+
+    return [$count, $examples];
+}
+
+function formatAuditCount(?int $count): string|int
+{
+    return $count ?? 'schema unavailable';
+}
+
+function renderAuditExamples($command, string $title, $rows, array $columns): void
+{
+    if ($rows->isEmpty()) {
+        return;
+    }
+
+    $command->newLine();
+    $command->warn($title . ' - examples (max 20)');
+    $command->table($columns, $rows->map(function ($row) use ($columns) {
+        return collect($columns)
+            ->map(fn ($column) => data_get($row, $column))
+            ->all();
+    })->all());
+}
