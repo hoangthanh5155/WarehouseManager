@@ -27,24 +27,34 @@ class AppServiceProvider extends ServiceProvider
         // Ép Laravel sử dụng giao diện phân trang của Bootstrap 5
         Paginator::useBootstrapFive();
 
-        View::composer('*', function ($view) {
-            $companyProfile = null;
+        View::composer('layouts.admin', function ($view) {
+            $companyProfileData = null;
 
             try {
-                $companyProfilePayload = Cache::remember('company_profile.current', now()->addMinutes(10), function () {
-                    return [
-                        'profile' => Schema::hasTable('company_profiles')
-                            ? CompanyProfile::current()
-                            : null,
-                    ];
+                $companyProfileData = Cache::remember('company_profile.current.v2', now()->addMinutes(10), function () {
+                    if (!Schema::hasTable('company_profiles')) {
+                        return null;
+                    }
+
+                    $profile = CompanyProfile::current();
+
+                    return $profile ? [
+                        'company_name' => $profile->company_name,
+                        'tax_code' => $profile->tax_code,
+                        'hotline' => $profile->hotline,
+                        'address' => $profile->address,
+                        'bank_account' => $profile->bank_account,
+                        'bank_name' => $profile->bank_name,
+                    ] : null;
                 });
-                $companyProfile = $companyProfilePayload['profile'] ?? null;
             } catch (\Throwable) {
-                $companyProfile = null;
+                $companyProfileData = null;
             }
 
+            $companyProfile = $companyProfileData ? (object) $companyProfileData : null;
+
             $view->with('currentCompanyProfile', $companyProfile);
-            $view->with('systemBrandName', $companyProfile?->company_name ?: CompanyProfile::fallbackName());
+            $view->with('systemBrandName', $companyProfileData['company_name'] ?? CompanyProfile::fallbackName());
         });
     }
 }
