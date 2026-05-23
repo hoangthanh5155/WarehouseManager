@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\CompanyProfile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -30,9 +31,14 @@ class AppServiceProvider extends ServiceProvider
             $companyProfile = null;
 
             try {
-                if (Schema::hasTable('company_profiles')) {
-                    $companyProfile = CompanyProfile::current();
-                }
+                $companyProfilePayload = Cache::remember('company_profile.current', now()->addMinutes(10), function () {
+                    return [
+                        'profile' => Schema::hasTable('company_profiles')
+                            ? CompanyProfile::current()
+                            : null,
+                    ];
+                });
+                $companyProfile = $companyProfilePayload['profile'] ?? null;
             } catch (\Throwable) {
                 $companyProfile = null;
             }

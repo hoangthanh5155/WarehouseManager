@@ -68,8 +68,7 @@ class ReportController extends Controller
             return view('reports.warehouse_history_uninitialized', compact('startDate', 'endDate'));
         }
 
-        $baseQuery = StockMovement::query()
-            ->with(['product.productCatalog', 'product.location', 'product.exportVoucher', 'productCatalog', 'supplier', 'fromLocation', 'toLocation', 'importVoucher', 'exportVoucher', 'user'])
+        $filterQuery = StockMovement::query()
             ->whereBetween('occurred_at', [$startDate, $endDate])
             ->when($request->filled('movement_type') && in_array($request->query('movement_type'), ['import', 'export'], true), fn ($query) => $query->where('movement_type', $request->query('movement_type')))
             ->when($request->filled('serial_number'), fn ($query) => $query->where('serial_number', 'like', '%' . $request->query('serial_number') . '%'))
@@ -87,14 +86,14 @@ class ReportController extends Controller
                 });
             });
 
-        $summary = (clone $baseQuery)
+        $summary = (clone $filterQuery)
             ->selectRaw('COUNT(*) as total_movements')
             ->selectRaw("SUM(CASE WHEN movement_type = 'import' THEN quantity ELSE 0 END) as imported_qty")
             ->selectRaw("SUM(CASE WHEN movement_type = 'export' THEN quantity ELSE 0 END) as exported_qty")
             ->selectRaw('COUNT(DISTINCT product_catalog_id) as product_count')
             ->first();
 
-        $dailyGroups = (clone $baseQuery)
+        $dailyGroups = (clone $filterQuery)
             ->selectRaw('DATE(occurred_at) as movement_date')
             ->selectRaw('COUNT(DISTINCT import_voucher_id) as import_batches')
             ->selectRaw("SUM(CASE WHEN movement_type = 'import' THEN quantity ELSE 0 END) as imported_qty")
@@ -104,7 +103,8 @@ class ReportController extends Controller
             ->orderByDesc('movement_date')
             ->get();
 
-        $movements = (clone $baseQuery)
+        $movements = (clone $filterQuery)
+            ->with(['product.productCatalog', 'product.location', 'product.exportVoucher', 'productCatalog', 'supplier', 'fromLocation', 'toLocation', 'importVoucher', 'exportVoucher', 'user'])
             ->orderByDesc('occurred_at')
             ->paginate(50)
             ->withQueryString();

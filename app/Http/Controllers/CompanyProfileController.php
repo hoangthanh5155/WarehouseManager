@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanyProfile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 class CompanyProfileController extends Controller
@@ -35,6 +36,8 @@ class CompanyProfileController extends Controller
         } else {
             CompanyProfile::query()->create($validated);
         }
+
+        Cache::forget('company_profile.current');
 
         return redirect()->route('settings.company.edit')->with('success', 'Đã cập nhật hồ sơ công ty/kho.');
     }

@@ -70,15 +70,14 @@
                 <tbody>
                     @forelse($catalogs as $cat)
                         @php
-                            $locations = $cat->products && $cat->products->isNotEmpty()
-                                ? $cat->products->map(fn($prod) => $prod->location ? $prod->location->shelf_name : null)->filter()->unique()->implode(', ')
-                                : '';
+                            $locations = $cat->inventory_location_names ?: '';
+                            $hasInventoryProducts = (int) ($cat->inventory_product_count ?? 0) > 0;
                         @endphp
                         <tr>
                             <td class="ps-3"><strong class="text-dark">{{ $cat->product_name }}</strong></td>
                             <td class="text-muted">{{ $cat->supplier ? $cat->supplier->name : 'N/A' }}</td>
                             <td class="text-primary fw-semibold">
-                                {{ $locations ?: ($cat->products && $cat->products->isNotEmpty() ? 'Chưa gắn vị trí' : 'Hết hàng / Chưa nhập') }}
+                                {{ $locations ?: ($hasInventoryProducts ? 'Chưa gắn vị trí' : 'Hết hàng / Chưa nhập') }}
                             </td>
                             <td class="text-end pe-3">
                                 <div class="d-flex gap-2 justify-content-end">
@@ -111,15 +110,14 @@
     <div class="mobile-catalog-card flex-column gap-3">
         @forelse($catalogs as $cat)
             @php
-                $locations = $cat->products && $cat->products->isNotEmpty()
-                    ? $cat->products->map(fn($prod) => $prod->location ? $prod->location->shelf_name : null)->filter()->unique()->implode(', ')
-                    : '';
+                $locations = $cat->inventory_location_names ?: '';
+                $hasInventoryProducts = (int) ($cat->inventory_product_count ?? 0) > 0;
             @endphp
             <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
                 <div class="fw-bold text-dark mb-1">{{ $cat->product_name }}</div>
                 <div class="small text-muted mb-2">{{ $cat->supplier ? $cat->supplier->name : 'N/A' }}</div>
                 <div class="small text-primary fw-semibold mb-3">
-                    <i class="bi bi-geo-alt me-1"></i>{{ $locations ?: ($cat->products && $cat->products->isNotEmpty() ? 'Chưa gắn vị trí' : 'Hết hàng / Chưa nhập') }}
+                    <i class="bi bi-geo-alt me-1"></i>{{ $locations ?: ($hasInventoryProducts ? 'Chưa gắn vị trí' : 'Hết hàng / Chưa nhập') }}
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('product-catalogs.edit', $cat->id) }}" class="btn btn-sm btn-outline-primary fw-bold flex-fill">

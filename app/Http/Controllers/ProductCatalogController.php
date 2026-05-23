@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\ProductCatalog;
 use App\Models\Supplier;
 use App\Models\Location;
+use Illuminate\Support\Facades\DB;
 
 class ProductCatalogController extends Controller
 {
@@ -21,8 +22,24 @@ class ProductCatalogController extends Controller
     {
         $this->authorizeMasterData();
 
-        // Eager Loading 'supplier' và 'products.location' để lấy thông tin vị trí từ sản phẩm thực tế
-        $catalogs = ProductCatalog::with(['supplier', 'products.location'])->latest()->get();
+        // Lấy vị trí kệ theo aggregate để tránh load toàn bộ serial/products.
+        $locationSummary = DB::table('products')
+            ->leftJoin('locations', 'products.location_id', '=', 'locations.id')
+            ->select('products.product_catalog_id')
+            ->selectRaw('COUNT(*) as inventory_product_count')
+            ->selectRaw("GROUP_CONCAT(DISTINCT locations.shelf_name ORDER BY locations.shelf_name SEPARATOR ', ') as inventory_location_names")
+            ->groupBy('products.product_catalog_id');
+
+        $catalogs = ProductCatalog::query()
+            ->with('supplier')
+            ->leftJoinSub($locationSummary, 'location_summary', function ($join) {
+                $join->on('location_summary.product_catalog_id', '=', 'product_catalogs.id');
+            })
+            ->select('product_catalogs.*')
+            ->selectRaw('COALESCE(location_summary.inventory_product_count, 0) as inventory_product_count')
+            ->selectRaw('location_summary.inventory_location_names as inventory_location_names')
+            ->latest('product_catalogs.created_at')
+            ->get();
         $suppliers = Supplier::all();
         
         return view('product-catalogs.index', compact('catalogs', 'suppliers'));
