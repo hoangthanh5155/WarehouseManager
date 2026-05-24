@@ -81,7 +81,7 @@
                     <div class="col-md-6 col-xl-4">
                         <a class="d-block border rounded-3 p-3 text-decoration-none bg-light h-100" href="{{ route('reports.warehouse_history', array_merge(request()->query(), ['start_date' => $day->movement_date, 'end_date' => $day->movement_date])) }}">
                             <div class="fw-bold text-dark">{{ \Carbon\Carbon::parse($day->movement_date)->format('d/m/Y') }}</div>
-                            <div class="small text-muted mt-1">{{ number_format($day->import_batches) }} lô nhập · {{ number_format($day->imported_qty) }} SN nhập · {{ number_format($day->exported_qty) }} SN xuất</div>
+                            <div class="small text-muted mt-1">{{ number_format($day->import_count) }} lần nhập · {{ number_format($day->export_count) }} lần xuất · {{ number_format($day->imported_qty) }} SN nhập · {{ number_format($day->exported_qty) }} SN xuất</div>
                             <div class="small text-primary fw-bold mt-2">Xem chi tiết</div>
                         </a>
                     </div>

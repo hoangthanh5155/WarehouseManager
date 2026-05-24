@@ -54,8 +54,10 @@
         <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Nhập trong kỳ</div><div class="fs-4 fw-bold text-success">{{ $formatQty($totals['imported_qty']) }}</div></div></div>
         <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Xuất trong kỳ</div><div class="fs-4 fw-bold text-primary">{{ $formatQty($totals['exported_qty']) }}</div></div></div>
         <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Tồn cuối kỳ</div><div class="fs-4 fw-bold">{{ $formatQty($totals['closing_qty']) }}</div></div></div>
+        <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Tồn hiện tại</div><div class="fs-4 fw-bold">{{ $formatQty($totals['current_stock_qty'] ?? 0) }}</div></div></div>
+        <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Chênh lệch</div><div class="fs-4 fw-bold {{ (float) ($totals['variance_qty'] ?? 0) === 0.0 ? 'text-success' : 'text-warning' }}">{{ $formatQty($totals['variance_qty'] ?? 0) }}</div></div></div>
         @if($canViewCost)
-            <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Giá trị tồn cuối</div><div class="fs-6 fw-bold text-dark">{{ $formatMoney($totals['closing_value']) }}</div></div></div>
+            <div class="col-6 col-lg-2"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Giá trị tồn hiện tại</div><div class="fs-6 fw-bold text-dark">{{ $formatMoney($totals['current_stock_value'] ?? 0) }}</div></div></div>
         @endif
     </div>
 
@@ -93,8 +95,8 @@
                                 $openingValue = (float) $row->opening_qty * (float) $row->wholesale_price;
                                 $importValue = (float) $row->imported_qty * (float) $row->wholesale_price;
                                 $exportValue = (float) $row->exported_qty * (float) $row->wholesale_price;
-                                $closingValue = (float) $row->closing_qty * (float) $row->wholesale_price;
-                                $needsReconcile = (float) $row->closing_qty !== (float) $row->current_stock_qty;
+                                $currentStockValue = (float) $row->current_stock_qty * (float) $row->wholesale_price;
+                                $needsReconcile = (float) ($row->variance_qty ?? 0) !== 0.0;
                             @endphp
                             <tr>
                                 <td>
@@ -114,7 +116,7 @@
                                     <td class="text-end">{{ $formatMoney($openingValue) }}</td>
                                     <td class="text-end">{{ $formatMoney($importValue) }}</td>
                                     <td class="text-end">{{ $formatMoney($exportValue) }}</td>
-                                    <td class="text-end">{{ $formatMoney($closingValue) }}</td>
+                                    <td class="text-end">{{ $formatMoney($currentStockValue) }}</td>
                                 @endif
                                 <td class="text-end text-nowrap">
                                     <a href="{{ route('reports.warehouse_history', ['product_catalog_id' => $row->id, 'start_date' => $startDate->toDateString(), 'end_date' => $endDate->toDateString()]) }}" class="btn btn-sm btn-outline-primary fw-bold">
