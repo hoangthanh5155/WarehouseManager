@@ -26,4 +26,9 @@ class Customer extends Model
     {
         return $this->hasMany(ExportVoucher::class);
     }
+
+    public function fulfillmentOrders()
+    {
+        return $this->hasMany(FulfillmentOrder::class);
+    }
 }

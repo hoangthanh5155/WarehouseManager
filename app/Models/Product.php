@@ -59,4 +59,14 @@ class Product extends Model
     {
         return $this->hasMany(StockMovement::class);
     }
+
+    public function deliveryBatchSerials()
+    {
+        return $this->hasMany(DeliveryBatchSerial::class);
+    }
+
+    public function activeDeliveryReservation()
+    {
+        return $this->hasOne(DeliveryBatchSerial::class, 'active_product_id');
+    }
 }

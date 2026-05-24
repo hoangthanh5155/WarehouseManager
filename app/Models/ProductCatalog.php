@@ -36,4 +36,14 @@ class ProductCatalog extends Model
     {
         return $this->hasMany(ExportVoucherItem::class);
     }
+
+    public function fulfillmentOrderItems(): HasMany
+    {
+        return $this->hasMany(FulfillmentOrderItem::class);
+    }
+
+    public function deliveryBatchSerials(): HasMany
+    {
+        return $this->hasMany(DeliveryBatchSerial::class);
+    }
 }
