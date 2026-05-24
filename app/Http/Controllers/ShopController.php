@@ -60,7 +60,7 @@ class ShopController extends Controller
         $cart[$catalogId] = ($cart[$catalogId] ?? 0) + (int) $validated['quantity'];
         $request->session()->put('shop_cart', $cart);
 
-        return redirect()->route('shop.cart')->with('success', 'Đã thêm sản phẩm vào giỏ.');
+        return back()->with('success', 'Đã thêm sản phẩm vào giỏ.');
     }
 
     public function updateCart(Request $request)
