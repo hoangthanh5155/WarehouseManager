@@ -4,19 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ImportVoucher extends Model
+class ImportVoucherItem extends Model
 {
     protected $guarded = [];
 
     protected $casts = [
-        'imported_at' => 'datetime',
-        'wholesale_price' => 'float',
+        'unit_cost' => 'float',
         'total_cost' => 'float',
     ];
 
-    public function supplier()
+    public function importVoucher()
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(ImportVoucher::class);
     }
 
     public function productCatalog()
@@ -29,23 +28,8 @@ class ImportVoucher extends Model
         return $this->belongsTo(Location::class);
     }
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
     public function products()
     {
         return $this->hasMany(Product::class);
-    }
-
-    public function items()
-    {
-        return $this->hasMany(ImportVoucherItem::class);
-    }
-
-    public function movements()
-    {
-        return $this->hasMany(StockMovement::class);
     }
 }

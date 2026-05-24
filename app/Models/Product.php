@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
+    public const STATUS_IN_STOCK = 1;
+    public const STATUS_EXPORTED = 2;
+
     // Mở khóa toàn bộ các cột để lưu dữ liệu hàng loạt không bị lỗi fillable
     protected $guarded = [];
 
@@ -37,9 +40,19 @@ class Product extends Model
         return $this->belongsTo(ImportVoucher::class);
     }
 
+    public function importVoucherItem()
+    {
+        return $this->belongsTo(ImportVoucherItem::class);
+    }
+
     public function exportVoucher()
     {
         return $this->belongsTo(ExportVoucher::class);
+    }
+
+    public function exportVoucherItem()
+    {
+        return $this->belongsTo(ExportVoucherItem::class);
     }
 
     public function movements()

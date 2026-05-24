@@ -99,27 +99,25 @@ class WarehouseSeeder extends Seeder
                 now()->subDays(4)
             );
 
-            DB::table('import_voucher_items')->insert([
-                [
-                    'import_voucher_id' => $iphoneImport->id,
-                    'product_catalog_id' => $iphone->id,
-                    'location_id' => $vip->id,
-                    'quantity' => 5,
-                    'unit_cost' => 28000000,
-                    'total_cost' => 140000000,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
-                [
-                    'import_voucher_id' => $galaxyImport->id,
-                    'product_catalog_id' => $galaxy->id,
-                    'location_id' => $keA1->id,
-                    'quantity' => 3,
-                    'unit_cost' => 22000000,
-                    'total_cost' => 66000000,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ],
+            $iphoneImportItemId = DB::table('import_voucher_items')->insertGetId([
+                'import_voucher_id' => $iphoneImport->id,
+                'product_catalog_id' => $iphone->id,
+                'location_id' => $vip->id,
+                'quantity' => 5,
+                'unit_cost' => 28000000,
+                'total_cost' => 140000000,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $galaxyImportItemId = DB::table('import_voucher_items')->insertGetId([
+                'import_voucher_id' => $galaxyImport->id,
+                'product_catalog_id' => $galaxy->id,
+                'location_id' => $keA1->id,
+                'quantity' => 3,
+                'unit_cost' => 22000000,
+                'total_cost' => 66000000,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             $iphoneProducts = $this->createProducts([
@@ -128,13 +126,13 @@ class WarehouseSeeder extends Seeder
                 'IP17PM-TEST-003',
                 'IP17PM-TEST-004',
                 'IP17PM-TEST-005',
-            ], $iphone, $apple, $vip, $iphoneImport, $admin?->id, now()->subDays(5));
+            ], $iphone, $apple, $vip, $iphoneImport, $iphoneImportItemId, $admin?->id, now()->subDays(5));
 
             $galaxyProducts = $this->createProducts([
                 'S26U-TEST-001',
                 'S26U-TEST-002',
                 'S26U-TEST-003',
-            ], $galaxy, $samsung, $keA1, $galaxyImport, $admin?->id, now()->subDays(4));
+            ], $galaxy, $samsung, $keA1, $galaxyImport, $galaxyImportItemId, $admin?->id, now()->subDays(4));
 
             $exportedAt = now()->subDays(2);
             $exportVoucher = ExportVoucher::query()->create([
@@ -208,6 +206,7 @@ class WarehouseSeeder extends Seeder
                 $product->update([
                     'status' => 2,
                     'export_voucher_id' => $exportVoucher->id,
+                    'export_voucher_item_id' => $exportItemId,
                     'exported_at' => $exportedAt,
                     'updated_at' => $exportedAt,
                 ]);
@@ -243,9 +242,9 @@ class WarehouseSeeder extends Seeder
         ]);
     }
 
-    private function createProducts(array $serials, ProductCatalog $catalog, Supplier $supplier, Location $location, ImportVoucher $voucher, ?int $userId, $importedAt)
+    private function createProducts(array $serials, ProductCatalog $catalog, Supplier $supplier, Location $location, ImportVoucher $voucher, int $importVoucherItemId, ?int $userId, $importedAt)
     {
-        return collect($serials)->map(function (string $serial) use ($catalog, $supplier, $location, $voucher, $userId, $importedAt) {
+        return collect($serials)->map(function (string $serial) use ($catalog, $supplier, $location, $voucher, $importVoucherItemId, $userId, $importedAt) {
             $product = Product::query()->create([
                 'product_catalog_id' => $catalog->id,
                 'supplier_id' => $supplier->id,
@@ -253,6 +252,7 @@ class WarehouseSeeder extends Seeder
                 'serial_number' => $serial,
                 'status' => 1,
                 'import_voucher_id' => $voucher->id,
+                'import_voucher_item_id' => $importVoucherItemId,
                 'imported_at' => $importedAt,
                 'created_at' => $importedAt,
                 'updated_at' => $importedAt,

@@ -26,4 +26,14 @@ class ProductCatalog extends Model
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
     }
+
+    public function importVoucherItems(): HasMany
+    {
+        return $this->hasMany(ImportVoucherItem::class);
+    }
+
+    public function exportVoucherItems(): HasMany
+    {
+        return $this->hasMany(ExportVoucherItem::class);
+    }
 }

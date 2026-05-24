@@ -43,8 +43,23 @@ class ExportVoucher extends Model
         return $this->hasMany(Product::class);
     }
 
+    public function items()
+    {
+        return $this->hasMany(ExportVoucherItem::class);
+    }
+
     public function movements()
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function parentVoucher()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function subVouchers()
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 }
