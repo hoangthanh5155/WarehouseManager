@@ -102,6 +102,7 @@ class WarehouseSeeder extends Seeder
             $iphoneImportItemId = DB::table('import_voucher_items')->insertGetId([
                 'import_voucher_id' => $iphoneImport->id,
                 'product_catalog_id' => $iphone->id,
+                'product_name_snapshot' => $iphone->product_name,
                 'location_id' => $vip->id,
                 'quantity' => 5,
                 'unit_cost' => 28000000,
@@ -112,6 +113,7 @@ class WarehouseSeeder extends Seeder
             $galaxyImportItemId = DB::table('import_voucher_items')->insertGetId([
                 'import_voucher_id' => $galaxyImport->id,
                 'product_catalog_id' => $galaxy->id,
+                'product_name_snapshot' => $galaxy->product_name,
                 'location_id' => $keA1->id,
                 'quantity' => 3,
                 'unit_cost' => 22000000,
@@ -169,6 +171,7 @@ class WarehouseSeeder extends Seeder
             $exportItemId = DB::table('export_voucher_items')->insertGetId([
                 'export_voucher_id' => $exportVoucher->id,
                 'product_catalog_id' => $iphone->id,
+                'product_name_snapshot' => $iphone->product_name,
                 'quantity' => 2,
                 'unit_cost' => 28000000,
                 'unit_price' => 32200000,

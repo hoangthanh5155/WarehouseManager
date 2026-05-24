@@ -55,6 +55,7 @@ class ExportStockService
             $companyProfile = CompanyProfile::current();
             $mainExportCode = $this->generateExportCode();
             $usedSerials = collect();
+            $lockedProducts = $this->lockProductsForExport($mainItems, $payload['sub_vouchers'] ?? []);
 
             $mainVoucher = $this->createVoucher(
                 payload: $payload,
@@ -65,7 +66,8 @@ class ExportStockService
                 companyProfile: $companyProfile,
                 exportedAt: $now,
                 userId: $userId,
-                usedSerials: $usedSerials
+                usedSerials: $usedSerials,
+                lockedProducts: $lockedProducts
             );
 
             $subVoucherIds = [];
@@ -88,7 +90,8 @@ class ExportStockService
                     companyProfile: $companyProfile,
                     exportedAt: $now,
                     userId: $userId,
-                    usedSerials: $usedSerials
+                    usedSerials: $usedSerials,
+                    lockedProducts: $lockedProducts
                 );
 
                 $subVoucherIds[] = $subVoucher->id;
@@ -112,9 +115,10 @@ class ExportStockService
         ?CompanyProfile $companyProfile,
         mixed $exportedAt,
         ?int $userId,
-        Collection $usedSerials
+        Collection $usedSerials,
+        Collection $lockedProducts
     ): ExportVoucher {
-        $preparedItems = $this->prepareItems($items, $usedSerials);
+        $preparedItems = $this->prepareItems($items, $usedSerials, $lockedProducts);
         $totals = $this->calculateTotals($preparedItems);
 
         $voucher = ExportVoucher::query()->create([
@@ -141,7 +145,7 @@ class ExportStockService
         ]);
 
         foreach ($preparedItems as $preparedItem) {
-            $voucherItem = ExportVoucherItem::query()->create([
+            $voucherItemPayload = [
                 'export_voucher_id' => $voucher->id,
                 'product_catalog_id' => $preparedItem['catalog']->id,
                 'quantity' => $preparedItem['quantity'],
@@ -149,7 +153,13 @@ class ExportStockService
                 'unit_price' => $preparedItem['unit_price'],
                 'total_cost' => $preparedItem['unit_cost'] * $preparedItem['quantity'],
                 'total_amount' => $preparedItem['unit_price'] * $preparedItem['quantity'],
-            ]);
+            ];
+
+            if (Schema::hasColumn('export_voucher_items', 'product_name_snapshot')) {
+                $voucherItemPayload['product_name_snapshot'] = $preparedItem['catalog']->product_name;
+            }
+
+            $voucherItem = ExportVoucherItem::query()->create($voucherItemPayload);
 
             foreach ($preparedItem['products'] as $product) {
                 ExportVoucherItemSerial::query()->create([
@@ -177,9 +187,9 @@ class ExportStockService
         return $voucher;
     }
 
-    private function prepareItems(array $items, Collection $usedSerials): Collection
+    private function prepareItems(array $items, Collection $usedSerials, Collection $lockedProducts): Collection
     {
-        return collect($items)->values()->map(function (array $item, int $index) use ($usedSerials) {
+        return collect($items)->values()->map(function (array $item, int $index) use ($usedSerials, $lockedProducts) {
             $catalogId = (int) ($item['product_catalog_id'] ?? $item['product_id'] ?? 0);
             if ($catalogId <= 0) {
                 throw ValidationException::withMessages([
@@ -234,10 +244,9 @@ class ExportStockService
                 ]);
             }
 
-            $products = Product::query()
-                ->whereIn('serial_number', $serials)
-                ->get()
-                ->keyBy('serial_number');
+            $products = $serials
+                ->mapWithKeys(fn ($serial) => [$serial => $lockedProducts->get($serial)])
+                ->filter();
 
             $missing = $serials->reject(fn ($serial) => $products->has($serial))->values();
             if ($missing->isNotEmpty()) {
@@ -275,6 +284,38 @@ class ExportStockService
                 'products' => $serials->map(fn ($serial) => $products->get($serial))->values(),
             ];
         });
+    }
+
+    private function lockProductsForExport(array $mainItems, mixed $subVouchers): Collection
+    {
+        $allItems = collect($mainItems);
+
+        collect(is_array($subVouchers) ? $subVouchers : [])
+            ->each(function ($subVoucher) use ($allItems) {
+                $items = is_array($subVoucher) ? ($subVoucher['items'] ?? []) : [];
+                if (is_array($items)) {
+                    $allItems->push(...$items);
+                }
+            });
+
+        $serials = $allItems
+            ->flatMap(fn ($item) => is_array($item) ? ($item['serials'] ?? []) : [])
+            ->map(fn ($serial) => trim((string) $serial))
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($serials->isEmpty()) {
+            return collect();
+        }
+
+        return Product::query()
+            ->whereIn('serial_number', $serials)
+            ->orderBy('serial_number')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('serial_number');
     }
 
     private function calculateTotals(Collection $items): array

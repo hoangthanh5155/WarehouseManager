@@ -101,14 +101,20 @@ class ImportStockService
                 'imported_at' => $now,
             ]);
 
-            $item = ImportVoucherItem::query()->create([
+            $itemPayload = [
                 'import_voucher_id' => $voucher->id,
                 'product_catalog_id' => $catalog->id,
                 'location_id' => $location->id,
                 'quantity' => $quantity,
                 'unit_cost' => $wholesalePrice,
                 'total_cost' => $wholesalePrice * $quantity,
-            ]);
+            ];
+
+            if (Schema::hasColumn('import_voucher_items', 'product_name_snapshot')) {
+                $itemPayload['product_name_snapshot'] = $catalog->product_name;
+            }
+
+            $item = ImportVoucherItem::query()->create($itemPayload);
 
             $products = $serials->map(function (string $serial) use ($catalog, $supplier, $location, $voucher, $item, $now, $userId) {
                 $productPayload = [

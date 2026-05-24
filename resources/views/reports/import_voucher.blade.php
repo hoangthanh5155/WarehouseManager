@@ -27,7 +27,7 @@
             <div class="card-body p-3">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                     <div>
-                        <h5 class="fw-bold text-dark mb-1">{{ $item->productCatalog?->product_name ?: 'N/A' }}</h5>
+                        <h5 class="fw-bold text-dark mb-1">{{ $item->product_name_snapshot ?: ($item->productCatalog?->product_name ?: 'N/A') }}</h5>
                         <div class="text-muted small">{{ $item->location?->shelf_name ?: 'N/A' }} · SL {{ number_format($item->quantity) }}</div>
                     </div>
                     @if($canViewCost)

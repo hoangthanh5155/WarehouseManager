@@ -269,18 +269,134 @@ Artisan::command('stock:audit-consistency', function () {
             ->get();
     }
 
+    $inStockButLinkedExportCount = null;
+    $inStockButLinkedExportExamples = collect();
+    if (Schema::hasTable('export_voucher_item_serials')) {
+        $inStockButLinkedExportQuery = DB::table('products')
+            ->join('export_voucher_item_serials', 'export_voucher_item_serials.product_id', '=', 'products.id')
+            ->join('export_voucher_items', 'export_voucher_items.id', '=', 'export_voucher_item_serials.export_voucher_item_id')
+            ->where('products.status', 1);
+
+        $inStockButLinkedExportCount = (clone $inStockButLinkedExportQuery)->distinct('products.id')->count('products.id');
+        $inStockButLinkedExportExamples = (clone $inStockButLinkedExportQuery)
+            ->select(
+                'products.id',
+                'products.serial_number',
+                'products.status',
+                'export_voucher_items.export_voucher_id',
+                'export_voucher_item_serials.export_voucher_item_id'
+            )
+            ->orderBy('products.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $duplicateExportedProductCount = null;
+    $duplicateExportedProductExamples = collect();
+    if (Schema::hasTable('export_voucher_item_serials')) {
+        $duplicateExportedProductSubquery = DB::table('export_voucher_item_serials')
+            ->select('product_id')
+            ->selectRaw('COUNT(*) as export_count')
+            ->groupBy('product_id')
+            ->havingRaw('COUNT(*) > 1');
+
+        $duplicateExportedProductCount = DB::query()
+            ->fromSub($duplicateExportedProductSubquery, 'duplicates')
+            ->count();
+
+        $duplicateExportedProductExamples = DB::table('export_voucher_item_serials')
+            ->joinSub($duplicateExportedProductSubquery, 'duplicates', 'duplicates.product_id', '=', 'export_voucher_item_serials.product_id')
+            ->join('products', 'products.id', '=', 'export_voucher_item_serials.product_id')
+            ->leftJoin('export_voucher_items', 'export_voucher_items.id', '=', 'export_voucher_item_serials.export_voucher_item_id')
+            ->select(
+                'products.id',
+                'products.serial_number',
+                'duplicates.export_count',
+                DB::raw('GROUP_CONCAT(export_voucher_items.export_voucher_id ORDER BY export_voucher_items.export_voucher_id) as export_voucher_ids')
+            )
+            ->groupBy('products.id', 'products.serial_number', 'duplicates.export_count')
+            ->orderBy('products.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $itemQuantityMismatchCount = null;
+    $itemQuantityMismatchExamples = collect();
+    if (Schema::hasTable('export_voucher_items') && Schema::hasTable('export_voucher_item_serials')) {
+        $itemQuantityMismatchQuery = DB::table('export_voucher_items')
+            ->leftJoin('export_voucher_item_serials', 'export_voucher_item_serials.export_voucher_item_id', '=', 'export_voucher_items.id')
+            ->leftJoin('export_vouchers', 'export_vouchers.id', '=', 'export_voucher_items.export_voucher_id')
+            ->select(
+                'export_voucher_items.id',
+                'export_voucher_items.export_voucher_id',
+                'export_vouchers.export_code',
+                'export_voucher_items.quantity',
+                DB::raw('COUNT(export_voucher_item_serials.id) as serial_count')
+            )
+            ->groupBy('export_voucher_items.id', 'export_voucher_items.export_voucher_id', 'export_vouchers.export_code', 'export_voucher_items.quantity')
+            ->havingRaw('export_voucher_items.quantity <> COUNT(export_voucher_item_serials.id)');
+
+        $itemQuantityMismatchCount = DB::query()
+            ->fromSub($itemQuantityMismatchQuery, 'item_quantity_mismatches')
+            ->count();
+        $itemQuantityMismatchExamples = $itemQuantityMismatchQuery
+            ->orderBy('export_voucher_items.id')
+            ->limit(20)
+            ->get();
+    }
+
+    $lastMovementStatusMismatchCount = null;
+    $lastMovementStatusMismatchExamples = collect();
+    if ($hasStockMovements) {
+        $latestMovementIds = DB::table('stock_movements')
+            ->select('product_id')
+            ->selectRaw('MAX(id) as last_movement_id')
+            ->whereNotNull('product_id')
+            ->groupBy('product_id');
+
+        $lastMovementStatusMismatchQuery = DB::table('products')
+            ->joinSub($latestMovementIds, 'latest_movements', 'latest_movements.product_id', '=', 'products.id')
+            ->join('stock_movements', 'stock_movements.id', '=', 'latest_movements.last_movement_id')
+            ->whereColumn('products.status', '<>', 'stock_movements.to_status');
+
+        $lastMovementStatusMismatchCount = (clone $lastMovementStatusMismatchQuery)->count();
+        $lastMovementStatusMismatchExamples = (clone $lastMovementStatusMismatchQuery)
+            ->select(
+                'products.id',
+                'products.serial_number',
+                'products.status',
+                'stock_movements.id as movement_id',
+                'stock_movements.movement_type',
+                'stock_movements.to_status'
+            )
+            ->orderBy('products.id')
+            ->limit(20)
+            ->get();
+    }
+
     $this->newLine();
     $this->table(['Check', 'Count'], [
         ['products status = 1', $statusInStock],
         ['products status = 2', $statusExported],
+        ['products status = 1 but linked to export_voucher_item_serials', formatAuditCount($inStockButLinkedExportCount)],
         ['products status = 2 but missing export_voucher_id', $missingExportVoucherCount],
         ['serials in export_vouchers.items but product status is not 2', $legacyJsonMismatchCount],
         ['products with export_voucher_id but missing export stock_movement', formatAuditCount($missingExportMovementCount)],
         ['products with import_voucher_id but missing import stock_movement', formatAuditCount($missingImportMovementCount)],
         ['stock_movements pointing to missing product_id', formatAuditCount($orphanMovementCount)],
         ['export stock_movements whose product is still status = 1', formatAuditCount($exportMovementStillInStockCount)],
+        ['products exported more than once', formatAuditCount($duplicateExportedProductCount)],
+        ['export_voucher_items quantity does not match serial count', formatAuditCount($itemQuantityMismatchCount)],
+        ['latest stock_movement to_status does not match product status', formatAuditCount($lastMovementStatusMismatchCount)],
     ]);
 
+    renderAuditExamples($this, 'products status = 1 but linked to export_voucher_item_serials', $inStockButLinkedExportExamples, [
+        'id',
+        'serial_number',
+        'status',
+        'export_voucher_id',
+        'export_voucher_item_id',
+    ]);
     renderAuditExamples($this, 'products status = 2 but missing export_voucher_id', $missingExportVoucherExamples, [
         'id',
         'serial_number',
@@ -314,6 +430,27 @@ Artisan::command('stock:audit-consistency', function () {
         'serial_number',
         'status',
         'movement_id',
+    ]);
+    renderAuditExamples($this, 'products exported more than once', $duplicateExportedProductExamples, [
+        'id',
+        'serial_number',
+        'export_count',
+        'export_voucher_ids',
+    ]);
+    renderAuditExamples($this, 'export_voucher_items quantity does not match serial count', $itemQuantityMismatchExamples, [
+        'id',
+        'export_voucher_id',
+        'export_code',
+        'quantity',
+        'serial_count',
+    ]);
+    renderAuditExamples($this, 'latest stock_movement to_status does not match product status', $lastMovementStatusMismatchExamples, [
+        'id',
+        'serial_number',
+        'status',
+        'movement_id',
+        'movement_type',
+        'to_status',
     ]);
 
     return 0;
