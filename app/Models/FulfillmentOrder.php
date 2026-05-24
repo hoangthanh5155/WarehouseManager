@@ -13,6 +13,11 @@ class FulfillmentOrder extends Model
         return $this->belongsTo(Customer::class);
     }
 
+    public function customerPortalUser()
+    {
+        return $this->belongsTo(CustomerPortalUser::class);
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');

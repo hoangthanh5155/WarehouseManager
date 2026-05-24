@@ -272,11 +272,21 @@
                 </li>
                 @endif
 
-                @if($isAdmin)
+                @if($canExportStock || $isAdmin)
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
+                    <a href="#salesSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('sales*') || request()->is('delivery*') ? 'active' : '' }}" data-sidebar-target="#salesSubmenu" role="button" aria-expanded="false" aria-controls="salesSubmenu">
                         <div><i class="bi bi-cart-fill menu-icon"></i>Quản lý bán hàng</div>
+                        <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
+                    <ul class="collapse submenu" id="salesSubmenu">
+                        <li><a href="{{ route('shop.index') }}" target="_blank" class="nav-link">Trang bán hàng</a></li>
+                        <li><a href="{{ route('delivery.orders.index') }}" class="nav-link {{ request()->routeIs('delivery.orders.*') ? 'active' : '' }}">Đơn cần giao</a></li>
+                        <li><a href="{{ route('delivery.batches.index') }}" class="nav-link {{ request()->routeIs('delivery.batches.*') ? 'active' : '' }}">Chuyến giao</a></li>
+                        <li><a href="{{ route('sales.customers.index') }}" class="nav-link {{ request()->routeIs('sales.customers.*') ? 'active' : '' }}">Khách hàng</a></li>
+                        @if($isAdmin)
+                            <li><a href="{{ route('sales.customer_accounts.index') }}" class="nav-link {{ request()->routeIs('sales.customer_accounts.*') ? 'active' : '' }}">Tài khoản khách hàng</a></li>
+                        @endif
+                    </ul>
                 </li>
                 @endif
 

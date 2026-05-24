@@ -31,9 +31,11 @@ class FulfillmentOrderService
                 'order_code' => $payload['order_code'] ?? $this->generateOrderCode(),
                 'order_type' => $payload['order_type'] ?? WarehouseConstants::ORDER_TYPE_MANUAL,
                 'customer_id' => $customerId,
+                'customer_portal_user_id' => $payload['customer_portal_user_id'] ?? null,
                 'store_id' => $payload['store_id'] ?? null,
                 'customer_type' => $payload['customer_type'] ?? WarehouseConstants::CUSTOMER_RETAIL,
                 'buyer_name' => $buyerName,
+                'phone' => $payload['phone'] ?? null,
                 'company_name' => $payload['company_name'] ?? null,
                 'address' => $payload['address'] ?? null,
                 'tax_code' => $payload['tax_code'] ?? null,
@@ -77,6 +79,10 @@ class FulfillmentOrderService
     {
         if (!empty($payload['customer_id'])) {
             return (int) $payload['customer_id'];
+        }
+
+        if (($payload['create_customer'] ?? true) === false) {
+            return null;
         }
 
         $buyerName = trim((string) ($payload['buyer_name'] ?? ''));

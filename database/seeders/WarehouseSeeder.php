@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\CompanyProfile;
 use App\Models\Customer;
+use App\Models\CustomerPortalUser;
 use App\Models\ExportVoucher;
 use App\Models\ImportVoucher;
 use App\Models\Location;
@@ -76,6 +77,37 @@ class WarehouseSeeder extends Seeder
                 'tax_code' => '0100000000',
                 'phone' => '0912345678',
                 'type' => 'retail',
+            ]);
+            $storeCustomer = Customer::query()->create([
+                'name' => 'Demo Store',
+                'company_name' => 'Demo Store Agency',
+                'address' => '456 Le Loi',
+                'tax_code' => '0200000000',
+                'phone' => '0987654321',
+                'type' => 'agency',
+            ]);
+
+            CustomerPortalUser::query()->create([
+                'customer_id' => $customer->id,
+                'name' => 'Customer Demo',
+                'email' => 'customer@example.com',
+                'password' => 'password',
+                'phone' => '0912345678',
+                'account_type' => CustomerPortalUser::ACCOUNT_RETAIL,
+                'customer_type' => CustomerPortalUser::CUSTOMER_RETAIL,
+                'approval_status' => CustomerPortalUser::APPROVAL_APPROVED,
+                'is_active' => true,
+            ]);
+            CustomerPortalUser::query()->create([
+                'customer_id' => $storeCustomer->id,
+                'name' => 'Store Demo',
+                'email' => 'store@example.com',
+                'password' => 'password',
+                'phone' => '0987654321',
+                'account_type' => CustomerPortalUser::ACCOUNT_STORE,
+                'customer_type' => CustomerPortalUser::CUSTOMER_AGENCY,
+                'approval_status' => CustomerPortalUser::APPROVAL_APPROVED,
+                'is_active' => true,
             ]);
 
             $iphoneImport = $this->createImportVoucher(

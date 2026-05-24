@@ -18,6 +18,7 @@ final class WarehouseConstants
 
     public const ORDER_TYPE_SYSTEM = 'system';
     public const ORDER_TYPE_MANUAL = 'manual';
+    public const ORDER_TYPE_GUEST = 'guest';
 
     public const FULFILLMENT_PENDING = 'pending';
     public const FULFILLMENT_RESERVED = 'reserved';

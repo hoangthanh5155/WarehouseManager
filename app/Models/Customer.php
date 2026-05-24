@@ -31,4 +31,9 @@ class Customer extends Model
     {
         return $this->hasMany(FulfillmentOrder::class);
     }
+
+    public function portalUsers()
+    {
+        return $this->hasMany(CustomerPortalUser::class);
+    }
 }

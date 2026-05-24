@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\CustomerPortalUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryBatchController;
 use App\Http\Controllers\DeliveryBatchPageController;
@@ -14,7 +15,28 @@ use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SerialTraceController;
+use App\Http\Controllers\ShopAccountController;
+use App\Http\Controllers\ShopController;
 use App\Http\Controllers\SupplierController;
+
+Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
+Route::get('/shop/products/{productCatalog}', [ShopController::class, 'show'])->name('shop.products.show');
+Route::get('/shop/cart', [ShopController::class, 'cart'])->name('shop.cart');
+Route::post('/shop/cart/add', [ShopController::class, 'addToCart'])->name('shop.cart.add');
+Route::post('/shop/cart/update', [ShopController::class, 'updateCart'])->name('shop.cart.update');
+Route::post('/shop/cart/remove', [ShopController::class, 'removeFromCart'])->name('shop.cart.remove');
+Route::get('/shop/checkout', [ShopController::class, 'checkout'])->name('shop.checkout');
+Route::post('/shop/checkout', [ShopController::class, 'storeCheckout'])->name('shop.checkout.store');
+Route::get('/shop/register', [ShopAccountController::class, 'showRegister'])->name('shop.register');
+Route::post('/shop/register', [ShopAccountController::class, 'register'])->name('shop.register.store');
+Route::get('/shop/login', [ShopAccountController::class, 'showLogin'])->name('shop.login');
+Route::post('/shop/login', [ShopAccountController::class, 'login'])->name('shop.login.store');
+Route::post('/shop/logout', [ShopAccountController::class, 'logout'])->name('shop.logout');
+Route::middleware('auth:customer')->group(function () {
+    Route::get('/shop/account', [ShopAccountController::class, 'account'])->name('shop.account');
+    Route::get('/shop/account/orders', [ShopAccountController::class, 'orders'])->name('shop.account.orders');
+    Route::get('/shop/account/orders/{fulfillmentOrder}', [ShopAccountController::class, 'orderShow'])->name('shop.account.orders.show');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AuthController::class, 'showLogin'])->name('login');
@@ -88,6 +110,13 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
         Route::resource('users', InternalUserController::class)->except(['show', 'destroy']);
         Route::patch('/users/{user}/status', [InternalUserController::class, 'toggleStatus'])->name('users.toggleStatus');
         Route::post('/users/{user}/reset-link', [InternalUserController::class, 'generateResetLink'])->name('users.resetLink');
+    });
+
+    Route::middleware('admin.only')->group(function () {
+        Route::get('/sales/customers', [CustomerPortalUserController::class, 'customers'])->name('sales.customers.index');
+        Route::get('/sales/customer-accounts', [CustomerPortalUserController::class, 'index'])->name('sales.customer_accounts.index');
+        Route::get('/sales/customer-accounts/{customerPortalUser}/edit', [CustomerPortalUserController::class, 'edit'])->name('sales.customer_accounts.edit');
+        Route::put('/sales/customer-accounts/{customerPortalUser}', [CustomerPortalUserController::class, 'update'])->name('sales.customer_accounts.update');
     });
 
     Route::middleware('permission:manage_settings')->group(function () {
