@@ -17,6 +17,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SerialTraceController;
 use App\Http\Controllers\ShopAccountController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\StorePortalController;
 use App\Http\Controllers\SupplierController;
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
@@ -36,6 +37,10 @@ Route::middleware('auth:customer')->group(function () {
     Route::get('/shop/account', [ShopAccountController::class, 'account'])->name('shop.account');
     Route::get('/shop/account/orders', [ShopAccountController::class, 'orders'])->name('shop.account.orders');
     Route::get('/shop/account/orders/{fulfillmentOrder}', [ShopAccountController::class, 'orderShow'])->name('shop.account.orders.show');
+});
+Route::middleware(['auth:customer', 'approved.store'])->group(function () {
+    Route::get('/store', [StorePortalController::class, 'dashboard'])->name('store.dashboard');
+    Route::get('/store/products', [StorePortalController::class, 'products'])->name('store.products.index');
 });
 
 Route::middleware('guest')->group(function () {
