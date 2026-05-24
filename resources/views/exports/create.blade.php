@@ -275,23 +275,7 @@
 @endif
 
 <script>
-    window.exportSystemOrders = @json($systemOrders->map(fn ($order) => [
-        'id' => $order->id,
-        'order_code' => $order->order_code,
-        'buyer_name' => $order->buyer_name,
-        'company_name' => $order->company_name,
-        'address' => $order->address,
-        'tax_code' => $order->tax_code,
-        'customer_type' => $order->customer_type,
-        'total_amount' => (float) ($order->total_amount ?? 0),
-        'items' => $order->items->map(fn ($item) => [
-            'id' => $item->id,
-            'product_catalog_id' => $item->product_catalog_id,
-            'product_name' => $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A'),
-            'quantity' => (int) $item->quantity,
-            'unit_price' => (float) $item->unit_price,
-        ])->values(),
-    ])->values());
+    window.exportSystemOrders = @json($systemOrdersPayload ?? []);
 </script>
 @endsection
 
