@@ -2,18 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Concerns\RespondsWithApi;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\ProductCatalog;
 use App\Models\Location;
-use App\Models\ImportVoucher;
-use App\Models\StockMovement;
+use App\Services\Warehouse\ImportStockService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
+    use RespondsWithApi;
+
     // [1] Trang chủ danh sách sản phẩm
     public function index(Request $request)
     {
@@ -110,183 +112,41 @@ class ProductController extends Controller
     }
 
     // [4] Xử lý lưu hàng hóa nhập kho (Đã rạch ròi 2 Tabs & Chống trùng SN)
-    public function storeManual(Request $request)
+    public function storeManual(Request $request, ImportStockService $importStockService)
     {
-        // 1. Phân tích Nhà Cung Cấp
-        $supplier_id = $request->supplier_id;
-        if (!is_numeric($supplier_id) && !empty($supplier_id)) {
-            $newSupplier = Supplier::firstOrCreate(['name' => $supplier_id]);
-            $supplier_id = $newSupplier->id;
+        if (!$request->has('is_ajax') && !$request->has('is_ajax_tab3')) {
+            return redirect()->back()->with('success', 'Thao tác thành công!');
         }
 
-        $wholesale_price = $request->wholesale_price ?? 0;
-
-        // 2. Phân tích Sản Phẩm (Danh mục)
-        $product_catalog_id = $request->product_catalog_id;
-        if (!empty($product_catalog_id)) {
-            if (!is_numeric($product_catalog_id)) {
-                $existingCatalog = ProductCatalog::where('product_name', $product_catalog_id)
-                    ->where('supplier_id', $supplier_id)
-                    ->first();
-                                                                             
-                if ($existingCatalog) {
-                    $product_catalog_id = $existingCatalog->id;
-                    if ($wholesale_price > 0) {
-                        $new_agency_price = $wholesale_price * (1 + ($existingCatalog->agency_margin / 100));
-                        $new_retail_price = $wholesale_price * (1 + ($existingCatalog->profit_margin / 100));
-
-                        $existingCatalog->update([
-                            'wholesale_price' => $wholesale_price,
-                            'agency_price'    => $new_agency_price,
-                            'retail_price'    => $new_retail_price,
-                        ]);
-                    }
-                } else {
-                    $prefix = strtoupper(substr($product_catalog_id, 0, 3)) . '-' . rand(1000, 9999);
-                    $newCatalog = ProductCatalog::create([
-                        'product_name' => $product_catalog_id,
-                        'supplier_id' => $supplier_id,
-                        'model_prefix' => $prefix,
-                        'wholesale_price' => $wholesale_price,
-                        'agency_margin' => 0,
-                        'profit_margin' => 0,
-                        'agency_price' => $wholesale_price,
-                        'retail_price' => $wholesale_price
-                    ]);
-                    $product_catalog_id = $newCatalog->id;
-                }
-            } else {
-                $existingCatalog = ProductCatalog::find($product_catalog_id);
-                if ($existingCatalog && $wholesale_price > 0) {
-                    $new_agency_price = $wholesale_price * (1 + ($existingCatalog->agency_margin / 100));
-                    $new_retail_price = $wholesale_price * (1 + ($existingCatalog->profit_margin / 100));
-
-                    $existingCatalog->update([
-                        'wholesale_price' => $wholesale_price,
-                        'agency_price'    => $new_agency_price,
-                        'retail_price'    => $new_retail_price,
-                    ]);
-                }
-            }
-        }
-
-        // 3. Phân tích Vị trí Kệ
-        $location_id = $request->location_id;
-        if (!is_numeric($location_id) && !empty($location_id)) {
-            $newLoc = Location::firstOrCreate(['shelf_name' => $location_id]);
-            $location_id = $newLoc->id;
-        }
-
-        // ==========================================
-        // CHIA LUỒNG XỬ LÝ CHÍNH XÁC THEO TỪNG TAB
-        // ==========================================
-
-        // luồng 1: TAB 1 - Quét mã SN lưu tự động qua AJAX
-        if ($request->has('is_ajax')) {
-            $sn = trim($request->scanned_sn);
-            
-            if (empty($sn)) {
-                return response()->json(['status' => 'error', 'message' => 'Mã SN không được để trống!']);
-            }
-
-            if (Product::where('serial_number', $sn)->exists()) {
-                return response()->json(['status' => 'error', 'message' => 'Mã SN này đã tồn tại trong kho!']);
-            }
-
-            $importCode = null;
-
-            DB::transaction(function () use ($request, $sn, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, &$importCode) {
-                $now = now();
-                $historyReady = $this->warehouseHistorySchemaReady();
-                $importVoucher = $historyReady
-                    ? $this->createImportVoucher($supplier_id, $product_catalog_id, $location_id, $wholesale_price, 1, $request->user()?->id, $now)
-                    : null;
-                $importCode = $importVoucher?->import_code;
-
-                $productPayload = [
-                    'product_catalog_id' => $product_catalog_id,
-                    'supplier_id' => $supplier_id,
-                    'location_id' => $location_id,
-                    'serial_number' => $sn,
-                    'status' => 1,
-                ];
-
-                if ($historyReady) {
-                    $productPayload['import_voucher_id'] = $importVoucher?->id;
-                    $productPayload['imported_at'] = $now;
-                }
-
-                $product = Product::create($productPayload);
-
-                if ($historyReady && $importVoucher) {
-                    $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
-                }
-            });
-
-            return response()->json(['status' => 'success', 'import_code' => $importCode]);
-        } 
-        
-        // luồng 2: TAB 2 - Tạo mã hàng loạt & In tem qua AJAX
-        if ($request->has('is_ajax_tab3')) {
-            $newProducts = []; 
-            $quantity = intval($request->input('quantity', 1));
-            
-            if ($quantity > 100) {
-                return response()->json(['status' => 'error', 'message' => 'Chỉ hỗ trợ tạo tối đa 100 mã một lần!']);
-            }
-
-            $catalog = ProductCatalog::find($product_catalog_id);
-            $productName = $catalog ? $catalog->product_name : 'Sản phẩm mới';
-
-            if (!$supplier_id || !$product_catalog_id || !$location_id) {
-                return response()->json(['status' => 'error', 'message' => 'Thiếu thông tin nhà cung cấp, sản phẩm hoặc vị trí kệ.']);
-            }
-
-            DB::transaction(function () use ($request, $quantity, $supplier_id, $product_catalog_id, $location_id, $wholesale_price, $productName, &$newProducts) {
-                $now = now();
-                $historyReady = $this->warehouseHistorySchemaReady();
-                $importVoucher = $historyReady
-                    ? $this->createImportVoucher($supplier_id, $product_catalog_id, $location_id, $wholesale_price, $quantity, $request->user()?->id, $now)
-                    : null;
-
-                for ($i = 0; $i < $quantity; $i++) {
-                    do {
-                        $code = 'SN' . date('ymd') . strtoupper(bin2hex(random_bytes(3)));
-                    } while (Product::where('serial_number', $code)->exists());
-
-                    $productPayload = [
-                        'product_catalog_id' => $product_catalog_id,
-                        'supplier_id' => $supplier_id,
-                        'location_id' => $location_id,
-                        'serial_number' => $code,
-                        'status' => 1,
-                    ];
-
-                    if ($historyReady) {
-                        $productPayload['import_voucher_id'] = $importVoucher?->id;
-                        $productPayload['imported_at'] = $now;
-                    }
-
-                    $product = Product::create($productPayload);
-
-                    if ($historyReady && $importVoucher) {
-                        $this->createImportMovement($product, $importVoucher, $request->user()?->id, $now);
-                    }
-
-                    $newProducts[] = [
-                        'sn' => $code,
-                        'name' => $productName
-                    ];
-                }
-            });
-            
-            return response()->json([
-                'status' => 'success',
-                'print_items' => $newProducts
+        try {
+            $payload = $request->validate([
+                'supplier_id' => ['required'],
+                'product_catalog_id' => ['required'],
+                'location_id' => ['required'],
+                'wholesale_price' => ['nullable', 'numeric', 'min:0'],
+                'scanned_sn' => ['nullable', 'string', 'max:255'],
+                'quantity' => ['nullable', 'integer', 'min:1', 'max:100'],
             ]);
-        }
 
-        return redirect()->back()->with('success', 'Thao tác thành công!');
+            $result = $request->has('is_ajax')
+                ? $importStockService->importScannedSerial([
+                    ...$payload,
+                    'serial_number' => $payload['scanned_sn'] ?? null,
+                ], $request->user()?->id)
+                : $importStockService->importGeneratedSerials($payload, $request->user()?->id);
+
+            return $this->successResponse('Nhập kho thành công.', $result);
+        } catch (ValidationException $e) {
+            return $this->errorResponse(
+                collect($e->errors())->flatten()->first() ?: 'Dữ liệu nhập kho không hợp lệ.',
+                $e->errors(),
+                422
+            );
+        } catch (\Throwable $e) {
+            report($e);
+
+            return $this->errorResponse('Lỗi xử lý nhập kho: ' . $e->getMessage(), [], 500);
+        }
     }
 
     // [5] API Lấy gợi ý thông minh (Lấy chính xác Vị Trí Kệ Cũ)
@@ -330,53 +190,4 @@ class ProductController extends Controller
         return response()->json($payload);
     }
 
-    private function createImportVoucher($supplierId, $productCatalogId, $locationId, $wholesalePrice, int $quantity, ?int $userId, $importedAt): ImportVoucher
-    {
-        return ImportVoucher::create([
-            'import_code' => $this->generateImportCode(),
-            'supplier_id' => $supplierId,
-            'product_catalog_id' => $productCatalogId,
-            'location_id' => $locationId,
-            'wholesale_price' => $wholesalePrice ?: 0,
-            'total_quantity' => $quantity,
-            'user_id' => $userId,
-            'imported_at' => $importedAt,
-        ]);
-    }
-
-    private function createImportMovement(Product $product, ImportVoucher $importVoucher, ?int $userId, $occurredAt): void
-    {
-        StockMovement::create([
-            'movement_type' => StockMovement::TYPE_IMPORT,
-            'product_id' => $product->id,
-            'serial_number' => $product->serial_number,
-            'product_catalog_id' => $product->product_catalog_id,
-            'supplier_id' => $product->supplier_id,
-            'from_status' => null,
-            'to_status' => 1,
-            'from_location_id' => null,
-            'to_location_id' => $product->location_id,
-            'import_voucher_id' => $importVoucher->id,
-            'user_id' => $userId,
-            'quantity' => 1,
-            'occurred_at' => $occurredAt,
-        ]);
-    }
-
-    private function generateImportCode(): string
-    {
-        do {
-            $code = 'PN-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(2)));
-        } while (ImportVoucher::where('import_code', $code)->exists());
-
-        return $code;
-    }
-
-    private function warehouseHistorySchemaReady(): bool
-    {
-        return Schema::hasTable('stock_movements')
-            && Schema::hasTable('import_vouchers')
-            && Schema::hasColumn('products', 'import_voucher_id')
-            && Schema::hasColumn('products', 'imported_at');
-    }
 }

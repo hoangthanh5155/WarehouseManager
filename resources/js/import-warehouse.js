@@ -275,7 +275,7 @@ export function initWarehouseLogic() {
                     const scanLog = document.getElementById('scan_log');
                     if (!scanLog) return;
 
-                    if (res.status === 'success') {
+                    if (res.success) {
                         scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-success py-2 highlight-scan"><i class="bi bi-check-circle me-1"></i>Đã lưu: <b>${sn}</b></li>`);
                     } else {
                         scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-danger py-2 highlight-scan"><i class="bi bi-exclamation-triangle me-1"></i>Lỗi: <b>${sn}</b> - ${res.message}</li>`);
@@ -325,11 +325,11 @@ export function initWarehouseLogic() {
             })
             .then(response => response.json())
             .then(res => {
-                if (res.status === 'success') {
+                if (res.success) {
                     const printArea = document.getElementById('print_area');
                     if (printArea) {
                         printArea.innerHTML = '';
-                        res.print_items.forEach(item => {
+                        (res.data?.print_items || []).forEach(item => {
                             const size = document.getElementById('label_size_selector')?.value || 'medium';
                             const widthPx = size === 'small' ? '220px' : (size === 'large' ? '360px' : '300px');
                             const heightPx = size === 'small' ? '140px' : (size === 'large' ? '220px' : '180px');
