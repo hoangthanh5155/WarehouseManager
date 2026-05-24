@@ -22,6 +22,7 @@ use App\Http\Controllers\StorePortalController;
 use App\Http\Controllers\SupplierController;
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
+Route::get('/delivery/public/{token}', [DeliveryBatchPageController::class, 'publicSlip'])->name('delivery.orders.public');
 Route::get('/shop/products/{productCatalog}', [ShopController::class, 'show'])->name('shop.products.show');
 Route::get('/shop/cart', [ShopController::class, 'cart'])->name('shop.cart');
 Route::post('/shop/cart/add', [ShopController::class, 'addToCart'])->name('shop.cart.add');
@@ -92,6 +93,9 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
 
     Route::middleware('permission:export_stock')->group(function () {
         Route::get('/delivery/orders', [DeliveryBatchPageController::class, 'ordersIndex'])->name('delivery.orders.index');
+        Route::get('/delivery/orders/{fulfillmentOrder}/print', [DeliveryBatchPageController::class, 'print'])->name('delivery.orders.print');
+        Route::post('/delivery/orders/{fulfillmentOrder}/deliver', [DeliveryBatchPageController::class, 'deliver'])->name('delivery.orders.confirm_deliver');
+        Route::post('/delivery/orders/{fulfillmentOrder}/fail', [DeliveryBatchPageController::class, 'fail'])->name('delivery.orders.confirm_fail');
         Route::get('/delivery/batches', [DeliveryBatchPageController::class, 'batchesIndex'])->name('delivery.batches.index');
         Route::get('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'batchesShow'])->name('delivery.batches.show');
     });

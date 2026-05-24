@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Concerns\RespondsWithApi;
 use App\Models\Customer;
+use App\Models\DeliveryBatchSerial;
 use App\Models\ExportVoucher;
+use App\Models\FulfillmentOrder;
+use App\Models\FulfillmentOrderSerial;
 use App\Models\Product;
 use App\Models\ProductCatalog;
-use App\Services\Warehouse\ExportStockService;
+use App\Services\Warehouse\FulfillmentPreparationService;
+use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -23,16 +27,33 @@ class ExportController extends Controller
             $customers = Customer::orderBy('name', 'asc')->get();
 
             $productCatalogs = ProductCatalog::withCount(['products' => function ($query) {
-                $query->where('status', 1);
+                $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)
+                    ->whereDoesntHave('activeFulfillmentReservation')
+                    ->whereDoesntHave('activeDeliveryReservation');
             }])
             ->orderBy('product_name', 'asc')
             ->get();
+
+            $systemOrders = FulfillmentOrder::query()
+                ->whereIn('status', [
+                    WarehouseConstants::FULFILLMENT_PENDING,
+                    WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
+                ])
+                ->whereIn('order_type', [
+                    WarehouseConstants::ORDER_TYPE_SYSTEM,
+                    WarehouseConstants::ORDER_TYPE_GUEST,
+                ])
+                ->with('items.productCatalog')
+                ->withSum('items as total_amount', 'total_amount')
+                ->latest()
+                ->limit(100)
+                ->get();
 
             $recentVouchers = ExportVoucher::orderByDesc('exported_at')
                 ->limit(8)
                 ->get();
 
-            return view('exports.create', compact('customers', 'productCatalogs', 'recentVouchers'));
+            return view('exports.create', compact('customers', 'productCatalogs', 'recentVouchers', 'systemOrders'));
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -46,25 +67,52 @@ class ExportController extends Controller
         try {
             $productId = $request->query('product_id');
 
-            $item = Product::where('serial_number', $serial_number)
-                ->where('product_catalog_id', $productId)
-                ->where('status', 1)
-                ->first();
+            $query = Product::query()
+                ->with('productCatalog', 'location')
+                ->where('serial_number', $serial_number)
+                ->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK);
+
+            if ($productId) {
+                $query->where('product_catalog_id', $productId);
+            }
+
+            $item = $query->first();
 
             if (!$item) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Ma Serial khong ton tai trong kho hoac da duoc xuat ban!',
+                    'message' => $productId ? 'SN sai sản phẩm.' : 'SN không có trong kho.',
                 ], 404);
             }
 
-            $catalog = ProductCatalog::find($productId);
+            $reserved = FulfillmentOrderSerial::query()
+                ->where('active_product_id', $item->id)
+                ->exists();
+
+            $batchReserved = DeliveryBatchSerial::query()
+                ->where('active_product_id', $item->id)
+                ->exists();
+
+            if ($reserved || $batchReserved) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'SN đang được giữ cho đơn khác.',
+                ], 422);
+            }
+
+            $catalog = $item->productCatalog;
 
             $payload = [
                 'success' => true,
                 'data' => [
                     'id' => $item->id,
+                    'product_id' => $item->id,
+                    'product_catalog_id' => $item->product_catalog_id,
                     'serial_number' => $item->serial_number,
+                    'product_name' => $catalog?->product_name,
+                    'retail_price' => (float) ($catalog?->retail_price ?? 0),
+                    'agency_price' => (float) ($catalog?->agency_price ?? 0),
+                    'location_name' => $item->location?->shelf_name,
                 ],
             ];
 
@@ -81,13 +129,14 @@ class ExportController extends Controller
         }
     }
 
-    public function store(Request $request, ExportStockService $exportStockService)
+    public function store(Request $request, FulfillmentPreparationService $preparationService)
     {
         $validator = Validator::make($request->all(), [
             'export_type' => 'required|string',
-            'customer_type' => 'required|string',
-            'buyer_name' => 'required|string',
-            'main_items' => 'required|array|min:1',
+            'customer_type' => 'nullable|string',
+            'buyer_name' => 'nullable|string',
+            'fulfillment_order_id' => ['required_if:export_type,' . WarehouseConstants::EXPORT_SYSTEM, 'nullable', 'integer', 'exists:fulfillment_orders,id'],
+            'serials' => 'required|array|min:1',
         ]);
 
         if ($validator->fails()) {
@@ -95,18 +144,26 @@ class ExportController extends Controller
         }
 
         try {
-            $result = $exportStockService->export(
-                $validator->validated() + $request->all(),
-                $request->user()?->id
-            );
+            $payload = $validator->validated() + $request->all();
+            if (($payload['export_type'] ?? null) === WarehouseConstants::EXPORT_SYSTEM) {
+                $order = FulfillmentOrder::query()->findOrFail((int) $payload['fulfillment_order_id']);
+                $order = $preparationService->prepareSystemOrder($order, $payload['serials'], $request->user()?->id);
+            } else {
+                $order = $preparationService->prepareNormal($payload, $request->user()?->id);
+            }
 
-            return $this->successResponse('Luu don xuat kho thanh cong!', $result);
+            return $this->successResponse('Đã lưu chờ giao.', [
+                'fulfillment_order_id' => $order->id,
+                'order_code' => $order->order_code,
+                'print_url' => route('delivery.orders.print', $order),
+                'public_url' => route('delivery.orders.public', $order->public_token),
+            ]);
         } catch (ValidationException $e) {
-            return $this->errorResponse('Du lieu xuat kho khong hop le.', $e->errors(), 422);
+            return $this->errorResponse('Dữ liệu soạn hàng không hợp lệ.', $e->errors(), 422);
         } catch (Throwable $e) {
             report($e);
 
-            return $this->errorResponse('Loi xu ly xuat kho: ' . $e->getMessage(), [], 500);
+            return $this->errorResponse('Lỗi xử lý soạn hàng: ' . $e->getMessage(), [], 500);
         }
     }
 

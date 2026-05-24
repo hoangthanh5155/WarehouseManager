@@ -20,7 +20,10 @@ class ShopController extends Controller
     {
         $customerUser = Auth::guard('customer')->user();
         $productCatalogs = ProductCatalog::query()
-            ->withCount(['products as stock_count' => fn ($query) => $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)])
+            ->withCount(['products as stock_count' => fn ($query) => $query
+                ->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)
+                ->whereDoesntHave('activeFulfillmentReservation')
+                ->whereDoesntHave('activeDeliveryReservation')])
             ->orderBy('product_name')
             ->paginate(12);
 
@@ -34,7 +37,10 @@ class ShopController extends Controller
     public function show(ProductCatalog $productCatalog)
     {
         $customerUser = Auth::guard('customer')->user();
-        $productCatalog->loadCount(['products as stock_count' => fn ($query) => $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)]);
+        $productCatalog->loadCount(['products as stock_count' => fn ($query) => $query
+            ->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)
+            ->whereDoesntHave('activeFulfillmentReservation')
+            ->whereDoesntHave('activeDeliveryReservation')]);
 
         return view('shop.show', [
             'productCatalog' => $productCatalog,
@@ -150,7 +156,10 @@ class ShopController extends Controller
 
         $catalogs = ProductCatalog::query()
             ->whereIn('id', $cart->keys())
-            ->withCount(['products as stock_count' => fn ($query) => $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)])
+            ->withCount(['products as stock_count' => fn ($query) => $query
+                ->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)
+                ->whereDoesntHave('activeFulfillmentReservation')
+                ->whereDoesntHave('activeDeliveryReservation')])
             ->get()
             ->keyBy('id');
 

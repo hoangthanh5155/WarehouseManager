@@ -12,11 +12,10 @@
         'completed' => 'success',
         'cancelled' => 'dark',
         'pending' => 'secondary',
+        'ready_to_deliver' => 'primary',
+        'in_delivery' => 'warning',
         'delivered' => 'success',
         'failed' => 'danger',
-        'assigned' => 'primary',
-        'reserved' => 'info',
-        'released' => 'dark',
     ];
     $statusLabel = [
         'draft' => 'Nháp',
@@ -26,14 +25,11 @@
         'completed' => 'Hoàn tất',
         'cancelled' => 'Đã hủy',
         'pending' => 'Chờ xử lý',
-        'reserved' => 'Đã giữ hàng',
+        'ready_to_deliver' => 'Chờ giao',
         'in_delivery' => 'Đang giao',
         'delivered' => 'Đã giao',
         'failed' => 'Giao thất bại',
-        'assigned' => 'Đã gán',
-        'released' => 'Đã thả',
     ];
-    $customerLabel = ['retail' => 'Khách lẻ', 'agency' => 'Đại lý'];
 @endphp
 
 <div class="container-fluid px-1 px-md-2" id="deliveryBatchShowPage">
@@ -64,7 +60,7 @@
                         </div>
                         <div>
                             <div class="text-muted small mb-1">Ghi chú</div>
-                            <div class="border rounded p-2 bg-light">{{ $batch->note ?: 'Không có ghi chú' }}</div>
+                            <div class="border rounded p-2 bg-light">{{ $batch->note ?: '-' }}</div>
                         </div>
                     </div>
                 </div>
@@ -78,7 +74,7 @@
                     <form class="delivery-api-form row g-2 align-items-end" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.orders.store', $batch) }}" data-success-reload="true">
                         @csrf
                         <div class="col-md-9">
-                            <label class="form-label fw-semibold">Đơn cần giao</label>
+                            <label class="form-label fw-semibold">Đơn chờ giao</label>
                             <select name="fulfillment_order_id" class="form-select" required>
                                 <option value="">Chọn đơn</option>
                                 @foreach($availableOrders as $order)
@@ -96,59 +92,17 @@
             </div>
         </div>
 
-        <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Quét SN</h5>
-                    <form class="delivery-api-form mb-3" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.serials.reserve', $batch) }}" data-success-reload="true" data-serial-list-form="serials">
-                        @csrf
-                        <label class="form-label fw-semibold">Serial</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="serials[]" placeholder="Quét hoặc nhập SN">
-                            <button class="btn btn-primary fw-semibold" type="submit">
-                                <i class="bi bi-upc-scan me-1"></i>Giữ SN
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="table-responsive" style="max-height: 420px;">
-                        <table class="table table-sm align-middle">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th>Serial</th>
-                                    <th>Sản phẩm</th>
-                                    <th>Trạng thái</th>
-                                    <th>Đơn</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($batch->serials->sortByDesc('created_at') as $serial)
-                                    <tr>
-                                        <td class="fw-semibold">{{ $serial->serial_number }}</td>
-                                        <td>{{ $serial->productCatalog->product_name ?? 'N/A' }}</td>
-                                        <td><span class="badge text-bg-{{ $statusClass[$serial->status] ?? 'secondary' }}">{{ $statusLabel[$serial->status] ?? $serial->status }}</span></td>
-                                        <td>{{ $serial->deliveryBatchOrder?->fulfillmentOrder?->order_code ?: '-' }}</td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="4" class="text-center text-muted py-3">Chưa có dữ liệu.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-7">
+        <div class="col-12">
             <div class="vstack gap-3">
                 @forelse($batch->batchOrders as $batchOrder)
                     @php($order = $batchOrder->fulfillmentOrder)
+                    @php($preparedSerials = $order->preparedSerials->where('status', 'prepared'))
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                                 <div>
                                     <h5 class="fw-bold mb-1">{{ $order->order_code }}</h5>
-                                    <div class="text-muted">{{ $order->buyer_name }} · {{ $customerLabel[$order->customer_type] ?? $order->customer_type }}</div>
+                                    <div class="text-muted">{{ $order->buyer_name }}</div>
                                 </div>
                                 <span class="badge align-self-start text-bg-{{ $statusClass[$batchOrder->status] ?? 'secondary' }}">{{ $statusLabel[$batchOrder->status] ?? $batchOrder->status }}</span>
                             </div>
@@ -159,16 +113,23 @@
                                         <tr>
                                             <th>Sản phẩm</th>
                                             <th class="text-end">SL</th>
-                                            <th class="text-end">Đơn giá</th>
+                                            <th>SN đã soạn</th>
                                             <th class="text-end">Thành tiền</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($order->items as $item)
+                                            @php($itemSerials = $preparedSerials->where('fulfillment_order_item_id', $item->id))
                                             <tr>
                                                 <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
                                                 <td class="text-end">{{ number_format($item->quantity) }}</td>
-                                                <td class="text-end">{{ number_format($item->unit_price) }} đ</td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        @foreach($itemSerials as $serial)
+                                                            <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
+                                                        @endforeach
+                                                    </div>
+                                                </td>
                                                 <td class="text-end fw-semibold">{{ number_format($item->total_amount) }} đ</td>
                                             </tr>
                                         @endforeach
@@ -176,29 +137,18 @@
                                 </table>
                             </div>
 
-                            <form class="delivery-api-form mb-3" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.serials.assign', $batchOrder) }}" data-success-reload="true" data-serial-lines-form="serials">
-                                @csrf
-                                <label class="form-label fw-semibold">SN xác minh</label>
-                                <textarea class="form-control" name="serials" rows="2" placeholder="Mỗi dòng một SN"></textarea>
-                                <button class="btn btn-outline-primary btn-sm mt-2" type="submit">
-                                    <i class="bi bi-check2-square me-1"></i>Xác minh SN
-                                </button>
-                            </form>
-
                             <div class="d-flex flex-wrap gap-2">
-                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.deliver', $batchOrder) }}" data-success-reload="true" data-confirm="Xác nhận giao thành công?">
-                                    @csrf
-                                    <button class="btn btn-success btn-sm fw-semibold" type="submit">
-                                        <i class="bi bi-truck me-1"></i>Giao thành công
-                                    </button>
-                                </form>
-                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.fail', $batchOrder) }}" data-success-reload="true" data-confirm="Đánh dấu giao thất bại?">
-                                    @csrf
-                                    <input type="hidden" name="note" value="Giao thất bại">
-                                    <button class="btn btn-outline-danger btn-sm" type="submit">
-                                        <i class="bi bi-x-circle me-1"></i>Giao thất bại
-                                    </button>
-                                </form>
+                                <a href="{{ route('delivery.orders.print', $order) }}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-printer me-1"></i>In đơn
+                                </a>
+                                @if($order->public_token)
+                                    <a href="{{ route('delivery.orders.public', $order->public_token) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>Phiếu điện tử
+                                    </a>
+                                @endif
+                                <a href="{{ route('delivery.orders.index') }}" class="btn btn-success btn-sm fw-semibold">
+                                    <i class="bi bi-truck me-1"></i>Xác nhận giao hàng
+                                </a>
                             </div>
                         </div>
                     </div>

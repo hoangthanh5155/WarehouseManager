@@ -24,7 +24,10 @@ class StorePortalController extends Controller
     {
         $customerUser = Auth::guard('customer')->user();
         $productCatalogs = ProductCatalog::query()
-            ->withCount(['products as stock_count' => fn ($query) => $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)])
+            ->withCount(['products as stock_count' => fn ($query) => $query
+                ->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)
+                ->whereDoesntHave('activeFulfillmentReservation')
+                ->whereDoesntHave('activeDeliveryReservation')])
             ->orderBy('product_name')
             ->paginate(12);
 

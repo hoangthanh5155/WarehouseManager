@@ -1,19 +1,32 @@
 import { apiMessage, showToast } from '../utils/ui';
 
 document.addEventListener('DOMContentLoaded', function () {
-    let mainVoucherItems = [];
-    let subVouchers = [];
+    const page = document.getElementById('exportPreparePage');
+    if (!page) return;
 
-    const verifySnModalElement = document.getElementById('verifySnModal');
-    let verifySnModal = null;
-    if (verifySnModalElement) {
-        verifySnModal = new bootstrap.Modal(verifySnModalElement);
-    }
+    const systemOrders = window.exportSystemOrders || [];
+    const scannedItems = [];
 
     const recentInvoicesToggle = document.getElementById('recentInvoicesToggle');
     const exportWorkflowTab = document.getElementById('exportWorkflowTab');
     const recentInvoicesTab = document.getElementById('recentInvoicesTab');
     const recentInvoicesToggleLabel = recentInvoicesToggle?.querySelector('[data-recent-toggle-label]');
+    const normalCustomerPanel = document.getElementById('normalCustomerPanel');
+    const systemOrderPanel = document.getElementById('systemOrderPanel');
+    const systemOrderSelect = document.getElementById('systemOrderSelect');
+    const systemOrderInfo = document.getElementById('systemOrderInfo');
+    const serialScanInput = document.getElementById('serialScanInput');
+    const preparedItemsBody = document.getElementById('preparedItemsBody');
+    const scanSummary = document.getElementById('scanSummary');
+    const globalTotalAmount = document.getElementById('globalTotalAmount');
+
+    function money(value) {
+        return new Intl.NumberFormat('vi-VN').format(Number(value || 0)) + ' đ';
+    }
+
+    function csrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    }
 
     function setExportPageTab(showRecentInvoices) {
         if (!recentInvoicesToggle || !exportWorkflowTab || !recentInvoicesTab) return;
@@ -31,465 +44,353 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    if (recentInvoicesToggle) {
-        recentInvoicesToggle.addEventListener('click', function () {
-            setExportPageTab(!recentInvoicesTab.classList.contains('active'));
-        });
+    recentInvoicesToggle?.addEventListener('click', function () {
+        setExportPageTab(!recentInvoicesTab.classList.contains('active'));
+    });
+
+    function getExportType() {
+        return document.querySelector('input[name="export_type"]:checked')?.value || 'normal';
     }
 
     function getCustomerType() {
-        return document.querySelector('input[name="customer_type"]:checked').value;
-    }
-    function getExportType() {
-        return document.querySelector('input[name="export_type"]:checked').value;
+        return document.querySelector('input[name="customer_type"]:checked')?.value || 'retail';
     }
 
-    const selectCustomer = document.getElementById('selectCustomer');
-    if (selectCustomer) {
-        selectCustomer.addEventListener('change', function () {
-            const opt = this.options[this.selectedIndex];
-            if (opt.value !== "") {
-                document.getElementById('buyerName').value = opt.getAttribute('data-name') || '';
-                document.getElementById('companyName').value = opt.getAttribute('data-company') || '';
-                document.getElementById('address').value = opt.getAttribute('data-address') || '';
-                document.getElementById('taxCode').value = opt.getAttribute('data-tax') || '';
-
-                if (opt.getAttribute('data-type') === 'agency') {
-                    document.getElementById('typeAgency').checked = true;
-                } else {
-                    document.getElementById('typeRetail').checked = true;
-                }
-                updateAllPricesByCustomerType();
-            }
-        });
+    function selectedSystemOrder() {
+        return systemOrders.find((order) => String(order.id) === String(systemOrderSelect?.value || '')) || null;
     }
 
-    document.querySelectorAll('input[name="customer_type"]').forEach(radio => {
-        radio.addEventListener('change', () => updateAllPricesByCustomerType());
-    });
+    function itemPrice(item) {
+        if (getExportType() === 'system') {
+            const order = selectedSystemOrder();
+            const orderItem = order?.items?.find((row) => Number(row.product_catalog_id) === Number(item.product_catalog_id));
+            return Number(orderItem?.unit_price || 0);
+        }
 
-    function updateAllPricesByCustomerType() {
-        const customerType = getCustomerType();
-        
-        mainVoucherItems.forEach(item => {
-            const opt = document.querySelector(`#selectProductMain option[value="${item.product_id}"]`);
-            if (opt) {
-                item.price = parseFloat(customerType === 'agency' ? opt.getAttribute('data-agency') : opt.getAttribute('data-retail')) || 0;
-            }
-        });
-        renderMainTable();
-
-        subVouchers.forEach(sub => {
-            sub.items.forEach(item => {
-                const opt = document.querySelector(`#selectProductMain option[value="${item.product_id}"]`);
-                if (opt) {
-                    item.price = parseFloat(customerType === 'agency' ? opt.getAttribute('data-agency') : opt.getAttribute('data-retail')) || 0;
-                }
-            });
-            renderSubTable(sub.id);
-        });
-        calculateGlobalTotal();
+        return getCustomerType() === 'agency' ? Number(item.agency_price || 0) : Number(item.retail_price || 0);
     }
 
-    const btnAddProductMain = document.getElementById('btnAddProductMain');
-    if (btnAddProductMain) {
-        btnAddProductMain.addEventListener('click', function () {
-            const select = document.getElementById('selectProductMain');
-            const opt = select.options[select.selectedIndex];
-            const productId = select.value;
-            const qty = parseInt(document.getElementById('inputQtyMain').value) || 1;
-
-            if (!productId || qty <= 0) {
-                showToast('Vui lòng chọn sản phẩm hợp lệ!', 'warning');
-                return;
-            }
-
-            if (mainVoucherItems.some(i => i.product_id === productId)) {
-                showToast('Sản phẩm đã có trong đơn chính!', 'warning');
-                return;
-            }
-
-            const price = parseFloat(getCustomerType() === 'agency' ? opt.getAttribute('data-agency') : opt.getAttribute('data-retail')) || 0;
-
-            mainVoucherItems.push({
-                product_id: productId,
-                product_name: opt.getAttribute('data-name'),
-                quantity: qty,
-                price: price,
-                wholesale_price: 0,
-                serials: []
-            });
-
-            renderMainTable();
-            select.value = '';
-            document.getElementById('inputQtyMain').value = 1;
-        });
+    function resetScannedItems() {
+        scannedItems.splice(0, scannedItems.length);
+        renderPreparedItems();
     }
 
-    function renderMainTable() {
-        const tbody = document.getElementById('mainExportItems');
-        if (!tbody) return;
+    function renderSystemOrderInfo() {
+        const order = selectedSystemOrder();
+        if (!systemOrderInfo) return;
 
-        if (mainVoucherItems.length === 0) {
-            tbody.innerHTML = `<tr class="empty-row-main"><td colspan="4" class="text-center py-4 text-muted"><i class="bi bi-inboxes d-block fs-3 mb-1"></i>Chưa có sản phẩm trong đơn chính.</td></tr>`;
-            calculateGlobalTotal();
+        if (!order) {
+            systemOrderInfo.innerHTML = '<div class="text-muted small">Chọn đơn để soạn hàng.</div>';
             return;
         }
 
-        tbody.innerHTML = '';
-        mainVoucherItems.forEach((item, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="fw-bold">${item.product_name}</td>
-                <td class="text-center fw-bold fs-6" style="width: 100px;">${item.quantity}</td>
-                <td class="text-center" style="width: 140px;">
-                    <input type="number" class="form-control form-control-sm text-end input-price-main fw-bold" data-index="${idx}" value="${item.price}">
-                </td>
-                <td class="text-center" style="width: 50px;">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-main" data-index="${idx}"><i class="bi bi-trash"></i></button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        tbody.querySelectorAll('.input-price-main').forEach(input => {
-            input.addEventListener('change', function () {
-                const idx = parseInt(this.getAttribute('data-index'));
-                mainVoucherItems[idx].price = parseFloat(this.value) || 0;
-                calculateGlobalTotal();
-            });
-        });
-
-        tbody.querySelectorAll('.btn-remove-main').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const idx = parseInt(this.getAttribute('data-index'));
-                mainVoucherItems.splice(idx, 1);
-                renderMainTable();
-            });
-        });
-
-        calculateGlobalTotal();
-    }
-
-    const btnCreateSubVoucher = document.getElementById('btnCreateSubVoucher');
-    if (btnCreateSubVoucher) {
-        btnCreateSubVoucher.addEventListener('click', function () {
-            const subId = Date.now();
-            subVouchers.push({ id: subId, items: [] });
-            renderSubVouchersContainer();
-        });
-    }
-
-    function renderSubVouchersContainer() {
-        const container = document.getElementById('subVouchersContainer');
-        if (!container) return;
-
-        container.innerHTML = '';
-        subVouchers.forEach((sub, subIdx) => {
-            const div = document.createElement('div');
-            div.className = "p-3 border rounded-3 bg-light mb-3 position-relative";
-            div.style.borderLeft = "4px solid #ffc107 !important";
-            div.innerHTML = `
-                <button type="button" class="btn-close position-absolute top-0 end-0 m-2 btn-remove-sub-voucher" data-index="${subIdx}"></button>
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-text me-1"></i>Đơn mở rộng #${subIdx + 1}</h6>
-                <div class="row g-2 align-items-end mb-3">
-                    <div class="col-md-6">
-                        <select class="form-select" id="selectSubProduct-${sub.id}">
-                            <option value="">-- Chọn sản phẩm --</option>
-                            ${Array.from(document.querySelectorAll('#selectProductMain option')).map(opt => {
-                                if (!opt.value) return '';
-                                return `<option value="${opt.value}" data-name="${opt.getAttribute('data-name')}" data-retail="${opt.getAttribute('data-retail')}" data-agency="${opt.getAttribute('data-agency')}">${opt.textContent}</option>`;
-                            }).join('')}
-                        </select>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <input type="number" class="form-control" id="inputSubQty-${sub.id}" value="1" min="1">
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <button type="button" class="btn btn-outline-warning fw-bold w-100 btn-add-sub-product" data-sub-id="${sub.id}">Thêm</button>
-                    </div>
+        systemOrderInfo.innerHTML = `
+            <div class="border rounded-3 p-3 bg-light">
+                <div class="d-flex justify-content-between gap-2 mb-2">
+                    <strong>${order.order_code}</strong>
+                    <span class="fw-bold text-danger">${money(order.total_amount)}</span>
                 </div>
-                <div class="table-responsive bg-white">
-                    <table class="table table-bordered align-middle m-0" style="font-size: 0.85rem;">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tên sản phẩm</th>
-                                <th class="text-center" style="width: 80px;">SL</th>
-                                <th class="text-center" style="width: 120px;">Giá bán</th>
-                                <th class="text-center" style="width: 40px;">Xóa</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sub-items-body-${sub.id}"></tbody>
+                <div class="small text-muted mb-2">${order.buyer_name || ''}${order.address ? ' - ' + order.address : ''}</div>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Sản phẩm</th><th class="text-end">SL</th><th class="text-end">Đơn giá</th></tr></thead>
+                        <tbody>
+                            ${order.items.map((item) => `
+                                <tr>
+                                    <td>${item.product_name}</td>
+                                    <td class="text-end">${item.quantity}</td>
+                                    <td class="text-end">${money(item.unit_price)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
                     </table>
                 </div>
-            `;
-            container.appendChild(div);
-
-            div.querySelector('.btn-add-sub-product').addEventListener('click', function () {
-                const subId = this.getAttribute('data-sub-id');
-                const select = document.getElementById(`selectSubProduct-${subId}`);
-                const opt = select.options[select.selectedIndex];
-                const pId = select.value;
-                const qty = parseInt(document.getElementById(`inputSubQty-${subId}`).value) || 1;
-
-                if (!pId || qty <= 0) { showToast('Chọn sản phẩm hợp lệ!', 'warning'); return; }
-
-                const subIdx = subVouchers.findIndex(s => s.id == subId);
-                if (subVouchers[subIdx].items.some(i => i.product_id === pId)) { showToast('Sản phẩm đã có trong đơn này!', 'warning'); return; }
-
-                const price = parseFloat(getCustomerType() === 'agency' ? opt.getAttribute('data-agency') : opt.getAttribute('data-retail')) || 0;
-
-                subVouchers[subIdx].items.push({
-                    product_id: pId,
-                    product_name: opt.getAttribute('data-name'),
-                    quantity: qty,
-                    price: price,
-                    wholesale_price: 0,
-                    serials: []
-                });
-
-                renderSubTable(subId);
-                select.value = '';
-                document.getElementById(`inputSubQty-${subId}`).value = 1;
-            });
-        });
-
-        container.querySelectorAll('.btn-remove-sub-voucher').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const idx = parseInt(this.getAttribute('data-index'));
-                subVouchers.splice(idx, 1);
-                renderSubVouchersContainer();
-            });
-        });
+            </div>
+        `;
     }
 
-    function renderSubTable(subId) {
-        const tbody = document.getElementById(`sub-items-body-${subId}`);
-        if (!tbody) return;
+    function switchExportType() {
+        const isSystem = getExportType() === 'system';
+        normalCustomerPanel?.classList.toggle('d-none', isSystem);
+        systemOrderPanel?.classList.toggle('d-none', !isSystem);
+        resetScannedItems();
+        renderSystemOrderInfo();
+        serialScanInput?.focus();
+    }
 
-        const sub = subVouchers.find(s => s.id == subId);
-        if (sub.items.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">Chưa có sản phẩm nào.</td></tr>`;
-            calculateGlobalTotal();
+    document.querySelectorAll('input[name="export_type"]').forEach((radio) => {
+        radio.addEventListener('change', switchExportType);
+    });
+
+    document.querySelectorAll('input[name="customer_type"]').forEach((radio) => {
+        radio.addEventListener('change', renderPreparedItems);
+    });
+
+    systemOrderSelect?.addEventListener('change', function () {
+        resetScannedItems();
+        renderSystemOrderInfo();
+    });
+
+    const selectCustomer = document.getElementById('selectCustomer');
+    selectCustomer?.addEventListener('change', function () {
+        const opt = this.options[this.selectedIndex];
+        if (!opt || !opt.value) return;
+
+        document.getElementById('buyerName').value = opt.getAttribute('data-name') || '';
+        document.getElementById('companyName').value = opt.getAttribute('data-company') || '';
+        document.getElementById('address').value = opt.getAttribute('data-address') || '';
+        document.getElementById('taxCode').value = opt.getAttribute('data-tax') || '';
+
+        if (opt.getAttribute('data-type') === 'agency') {
+            document.getElementById('typeAgency').checked = true;
+        } else {
+            document.getElementById('typeRetail').checked = true;
+        }
+        renderPreparedItems();
+    });
+
+    function groupedItems() {
+        const grouped = new Map();
+        scannedItems.forEach((item) => {
+            const key = String(item.product_catalog_id);
+            if (!grouped.has(key)) {
+                grouped.set(key, {
+                    product_catalog_id: item.product_catalog_id,
+                    product_name: item.product_name,
+                    retail_price: item.retail_price,
+                    agency_price: item.agency_price,
+                    serials: [],
+                });
+            }
+            grouped.get(key).serials.push(item.serial_number);
+        });
+
+        return Array.from(grouped.values());
+    }
+
+    function renderPreparedItems() {
+        if (!preparedItemsBody) return;
+
+        const groups = groupedItems();
+        scanSummary.textContent = `${scannedItems.length} SN`;
+
+        if (groups.length === 0) {
+            preparedItemsBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Chưa có SN.</td></tr>';
+            globalTotalAmount.textContent = money(0);
             return;
         }
 
-        tbody.innerHTML = '';
-        sub.items.forEach((item, idx) => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="fw-bold">${item.product_name}</td>
-                <td class="text-center fw-bold">${item.quantity}</td>
-                <td class="text-center">
-                    <input type="number" class="form-control form-control-sm text-end input-price-sub fw-bold" data-sub-id="${subId}" data-index="${idx}" value="${item.price}">
-                </td>
-                <td class="text-center">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-sub-item" data-sub-id="${subId}" data-index="${idx}"><i class="bi bi-trash"></i></button>
-                </td>
+        let total = 0;
+        preparedItemsBody.innerHTML = groups.map((group) => {
+            const price = itemPrice(group);
+            const amount = price * group.serials.length;
+            total += amount;
+
+            return `
+                <tr>
+                    <td class="fw-bold">${group.product_name || 'N/A'}</td>
+                    <td class="text-center fw-bold">${group.serials.length}</td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1">
+                            ${group.serials.map((serial) => `
+                                <span class="badge text-bg-light border">
+                                    ${serial}
+                                    <button type="button" class="btn btn-sm p-0 ms-1 text-danger" data-remove-serial="${serial}" aria-label="Xóa SN">&times;</button>
+                                </span>
+                            `).join('')}
+                        </div>
+                    </td>
+                    <td class="text-end fw-semibold">${money(price)}</td>
+                    <td class="text-end fw-bold">${money(amount)}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-remove-catalog="${group.product_catalog_id}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
             `;
-            tbody.appendChild(tr);
-        });
+        }).join('');
 
-        tbody.querySelectorAll('.input-price-sub').forEach(input => {
-            input.addEventListener('change', function () {
-                const sId = this.getAttribute('data-sub-id');
-                const idx = parseInt(this.getAttribute('data-index'));
-                const sIdx = subVouchers.findIndex(s => s.id == sId);
-                subVouchers[sIdx].items[idx].price = parseFloat(this.value) || 0;
-                calculateGlobalTotal();
-            });
-        });
-
-        tbody.querySelectorAll('.btn-remove-sub-item').forEach(btn => {
-            btn.addEventListener('click', function () {
-                const sId = this.getAttribute('data-sub-id');
-                const idx = parseInt(this.getAttribute('data-index'));
-                const sIdx = subVouchers.findIndex(s => s.id == sId);
-                subVouchers[sIdx].items.splice(idx, 1);
-                renderSubTable(sId);
-            });
-        });
-
-        calculateGlobalTotal();
+        globalTotalAmount.textContent = money(total);
     }
 
-    function calculateGlobalTotal() {
-        let globalTotal = 0;
-        mainVoucherItems.forEach(i => globalTotal += (i.price * i.quantity));
-        subVouchers.forEach(s => s.items.forEach(i => globalTotal += (i.price * i.quantity)));
-        
-        const totalSpan = document.getElementById('globalTotalAmount');
-        if (totalSpan) {
-            totalSpan.textContent = new Intl.NumberFormat('vi-VN').format(globalTotal) + ' đ';
+    preparedItemsBody?.addEventListener('click', function (event) {
+        const serialButton = event.target.closest('[data-remove-serial]');
+        const catalogButton = event.target.closest('[data-remove-catalog]');
+
+        if (serialButton) {
+            const serial = serialButton.getAttribute('data-remove-serial');
+            const index = scannedItems.findIndex((item) => item.serial_number === serial);
+            if (index >= 0) scannedItems.splice(index, 1);
+            renderPreparedItems();
+        }
+
+        if (catalogButton) {
+            const catalogId = Number(catalogButton.getAttribute('data-remove-catalog'));
+            for (let index = scannedItems.length - 1; index >= 0; index--) {
+                if (Number(scannedItems[index].product_catalog_id) === catalogId) {
+                    scannedItems.splice(index, 1);
+                }
+            }
+            renderPreparedItems();
+        }
+    });
+
+    function canAddSystemSerial(serialData) {
+        const order = selectedSystemOrder();
+        if (!order) {
+            showToast('Vui lòng chọn đơn hệ thống.', 'warning');
+            return false;
+        }
+
+        const orderItem = order.items.find((item) => Number(item.product_catalog_id) === Number(serialData.product_catalog_id));
+        if (!orderItem) {
+            showToast('SN sai sản phẩm.', 'warning');
+            return false;
+        }
+
+        const currentCount = scannedItems.filter((item) => Number(item.product_catalog_id) === Number(serialData.product_catalog_id)).length;
+        if (currentCount >= Number(orderItem.quantity)) {
+            showToast('Sản phẩm này đã đủ SN.', 'warning');
+            return false;
+        }
+
+        return true;
+    }
+
+    async function checkSerial(serial) {
+        const response = await fetch(`/api/export/check-sn/${encodeURIComponent(serial)}`, {
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': csrfToken(),
+            },
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(apiMessage(data) || 'SN không hợp lệ.');
+        }
+
+        return data.data;
+    }
+
+    async function addSerialFromInput() {
+        const serial = serialScanInput.value.trim();
+        if (!serial) return;
+
+        if (scannedItems.some((item) => item.serial_number === serial)) {
+            showToast('SN đã có trong đơn.', 'warning');
+            serialScanInput.select();
+            return;
+        }
+
+        try {
+            const serialData = await checkSerial(serial);
+
+            if (getExportType() === 'system' && !canAddSystemSerial(serialData)) {
+                serialScanInput.select();
+                return;
+            }
+
+            scannedItems.push(serialData);
+            serialScanInput.value = '';
+            renderPreparedItems();
+        } catch (error) {
+            showToast(error.message, 'danger');
+            serialScanInput.select();
         }
     }
 
-    const btnOpenVerifyModal = document.getElementById('btnOpenVerifyModal');
-    if (btnOpenVerifyModal) {
-        btnOpenVerifyModal.addEventListener('click', function () {
-            const verifyListArea = document.getElementById('verifyListArea');
-            if (!verifyListArea) return;
+    document.getElementById('btnAddSerial')?.addEventListener('click', addSerialFromInput);
+    serialScanInput?.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            addSerialFromInput();
+        }
+    });
 
-            if (mainVoucherItems.length === 0) {
-                showToast('Vui lòng thêm sản phẩm vào đơn chính!', 'warning');
-                return;
+    function validateBeforeSave() {
+        if (scannedItems.length === 0) {
+            showToast('Vui lòng quét SN.', 'warning');
+            return false;
+        }
+
+        if (getExportType() === 'normal') {
+            if (!document.getElementById('buyerName').value.trim()) {
+                showToast('Vui lòng nhập người mua.', 'warning');
+                return false;
             }
+            return true;
+        }
 
-            const buyerName = document.getElementById('buyerName').value.trim();
-            if (!buyerName) {
-                showToast('Vui lòng nhập họ tên người mua hàng!', 'warning');
-                return;
+        const order = selectedSystemOrder();
+        if (!order) {
+            showToast('Vui lòng chọn đơn hệ thống.', 'warning');
+            return false;
+        }
+
+        const required = order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+        if (scannedItems.length !== required) {
+            showToast('Số SN chưa khớp đơn.', 'warning');
+            return false;
+        }
+
+        for (const item of order.items) {
+            const count = scannedItems.filter((serial) => Number(serial.product_catalog_id) === Number(item.product_catalog_id)).length;
+            if (count !== Number(item.quantity)) {
+                showToast(`Chưa đủ SN cho ${item.product_name}.`, 'warning');
+                return false;
             }
+        }
 
-            verifyListArea.innerHTML = '';
-
-            let mainHtml = `<div class="mb-4"><h6 class="fw-bold text-primary"><i class="bi bi-cart-check me-2"></i>Sản phẩm đơn chính</h6>`;
-            mainVoucherItems.forEach((item, pIdx) => {
-                mainHtml += `
-                    <div class="card mb-2 border shadow-sm p-3 bg-white">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark">${item.product_name}</span>
-                            <span class="badge bg-secondary fs-6">SL cần: ${item.quantity}</span>
-                        </div>
-                        <div class="row g-2">
-                `;
-                for (let i = 0; i < item.quantity; i++) {
-                    mainHtml += `
-                        <div class="col-12 col-md-6">
-                            <input type="text" class="form-control form-control-sm sn-input-main" data-prod-idx="${pIdx}" placeholder="Quét mã SN ${i+1}..." required autocomplete="off">
-                        </div>
-                    `;
-                }
-                mainHtml += `</div></div>`;
-            });
-            mainHtml += `</div>`;
-            verifyListArea.innerHTML += mainHtml;
-
-            if (subVouchers.length > 0) {
-                subVouchers.forEach((sub, subIdx) => {
-                    if (sub.items.length === 0) return;
-                    let subHtml = `<div class="mb-4"><h6 class="fw-bold text-warning"><i class="bi bi-file-earmark-plus me-2"></i>Đơn mở rộng #${subIdx + 1}</h6>`;
-                    sub.items.forEach((item, pIdx) => {
-                        subHtml += `
-                            <div class="card mb-2 border shadow-sm p-3 bg-white">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="fw-bold text-dark">${item.product_name}</span>
-                                    <span class="badge bg-secondary fs-6">SL cần: ${item.quantity}</span>
-                                </div>
-                                <div class="row g-2">
-                        `;
-                        for (let i = 0; i < item.quantity; i++) {
-                            subHtml += `
-                                <div class="col-12 col-md-6">
-                                    <input type="text" class="form-control form-control-sm sn-input-sub" data-sub-idx="${subIdx}" data-prod-idx="${pIdx}" placeholder="Quét mã SN ${i+1}..." required autocomplete="off">
-                                </div>
-                            `;
-                        }
-                        subHtml += `</div></div>`;
-                    });
-                    subHtml += `</div>`;
-                    verifyListArea.innerHTML += subHtml;
-                });
-            }
-
-            verifySnModal.show();
-        });
+        return true;
     }
 
-    const btnConfirmAndSave = document.getElementById('btnConfirmAndSave');
-    if (btnConfirmAndSave) {
-        btnConfirmAndSave.addEventListener('click', function () {
-            let isValid = true;
+    async function savePrepared(printAfterSave = false) {
+        if (!validateBeforeSave()) return;
 
-            // Làm sạch mảng serials cũ trước khi lưu mới
-            mainVoucherItems.forEach(item => item.serials = []);
-            subVouchers.forEach(sub => sub.items.forEach(item => item.serials = []));
+        const button = printAfterSave ? document.getElementById('btnSaveAndPrintPrepared') : document.getElementById('btnSavePrepared');
+        button.disabled = true;
 
-            document.querySelectorAll('.sn-input-main').forEach(input => {
-                const val = input.value.trim();
-                const pIdx = parseInt(input.getAttribute('data-prod-idx'));
-                if (!val) {
-                    isValid = false;
-                    input.classList.add('is-invalid');
-                } else {
-                    input.classList.remove('is-invalid');
-                    if (!mainVoucherItems[pIdx].serials.includes(val)) {
-                        mainVoucherItems[pIdx].serials.push(val);
-                    }
-                }
-            });
+        const payload = {
+            export_type: getExportType(),
+            customer_type: getExportType() === 'system' ? selectedSystemOrder().customer_type : getCustomerType(),
+            customer_id: selectCustomer?.value || null,
+            buyer_name: document.getElementById('buyerName')?.value?.trim() || selectedSystemOrder()?.buyer_name || '',
+            company_name: document.getElementById('companyName')?.value?.trim() || selectedSystemOrder()?.company_name || '',
+            address: document.getElementById('address')?.value?.trim() || selectedSystemOrder()?.address || '',
+            tax_code: document.getElementById('taxCode')?.value?.trim() || selectedSystemOrder()?.tax_code || '',
+            fulfillment_order_id: selectedSystemOrder()?.id || null,
+            serials: scannedItems.map((item) => item.serial_number),
+            print: printAfterSave,
+        };
 
-            document.querySelectorAll('.sn-input-sub').forEach(input => {
-                const val = input.value.trim();
-                const subIdx = parseInt(input.getAttribute('data-sub-idx'));
-                const pIdx = parseInt(input.getAttribute('data-prod-idx'));
-                if (!val) {
-                    isValid = false;
-                    input.classList.add('is-invalid');
-                } else {
-                    input.classList.remove('is-invalid');
-                    if (!subVouchers[subIdx].items[pIdx].serials.includes(val)) {
-                        subVouchers[subIdx].items[pIdx].serials.push(val);
-                    }
-                }
-            });
-
-            if (!isValid) {
-                showToast('Vui lòng quét hoặc nhập đầy đủ mã SN!', 'warning');
-                return;
-            }
-
-            btnConfirmAndSave.disabled = true;
-            btnConfirmAndSave.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu đơn...`;
-
-            const payload = {
-                export_type: getExportType(),
-                customer_type: getCustomerType(),
-                customer_id: selectCustomer ? selectCustomer.value : null,
-                buyer_name: document.getElementById('buyerName').value.trim(),
-                company_name: document.getElementById('companyName').value.trim(),
-                address: document.getElementById('address').value.trim(),
-                tax_code: document.getElementById('taxCode').value.trim(),
-                main_items: mainVoucherItems,
-                sub_vouchers: subVouchers
-            };
-
-            console.log('Payload gửi lên:', payload);
-
-            fetch('/api/export/submit', {
+        try {
+            const response = await fetch('/api/export/submit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
                 },
-                body: JSON.stringify(payload)
-            })
-            .then(async res => {
-                const data = await res.json();
-                if (!res.ok) {
-                    throw new Error(data.message || 'Lỗi hệ thống từ máy chủ');
-                }
-                return data;
-            })
-            .then(res => {
-                if (res.success) {
-                    verifySnModal.hide();
-                    showToast('Lưu đơn xuất kho thành công. Hệ thống sẽ chuyển hướng in ngay.', 'success');
-                    const printUrl = res.data?.print_url || `/export/print/${res.data?.export_voucher_id}`;
-                    window.location.href = printUrl;
-                } else {
-                    showToast(apiMessage(res), 'danger');
-                    btnConfirmAndSave.disabled = false;
-                    btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
-                }
-            })
-            .catch(err => {
-                console.error('Chi tiết lỗi Ajax:', err);
-                showToast('Có lỗi xảy ra: ' + err.message, 'danger');
-                btnConfirmAndSave.disabled = false;
-                btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
+                body: JSON.stringify(payload),
             });
-        });
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(apiMessage(data) || 'Không lưu được đơn.');
+            }
+
+            showToast(apiMessage(data) || 'Đã lưu chờ giao.', 'success');
+            window.location.href = printAfterSave ? data.data.print_url : page.dataset.deliveryOrdersUrl;
+        } catch (error) {
+            showToast(error.message, 'danger');
+            button.disabled = false;
+        }
     }
+
+    document.getElementById('btnSavePrepared')?.addEventListener('click', () => savePrepared(false));
+    document.getElementById('btnSaveAndPrintPrepared')?.addEventListener('click', () => savePrepared(true));
+
+    switchExportType();
 });

@@ -22,6 +22,8 @@ final class WarehouseConstants
 
     public const FULFILLMENT_PENDING_APPROVAL = 'pending_approval';
     public const FULFILLMENT_PENDING = 'pending';
+    public const FULFILLMENT_PENDING_PREPARE = 'pending_prepare';
+    public const FULFILLMENT_READY_TO_DELIVER = 'ready_to_deliver';
     public const FULFILLMENT_REJECTED = 'rejected';
     public const FULFILLMENT_RESERVED = 'reserved';
     public const FULFILLMENT_IN_DELIVERY = 'in_delivery';
@@ -47,6 +49,10 @@ final class WarehouseConstants
     public const DELIVERY_SERIAL_ASSIGNED = 'assigned';
     public const DELIVERY_SERIAL_DELIVERED = 'delivered';
     public const DELIVERY_SERIAL_RELEASED = 'released';
+
+    public const ORDER_SERIAL_PREPARED = 'prepared';
+    public const ORDER_SERIAL_DELIVERED = 'delivered';
+    public const ORDER_SERIAL_RELEASED = 'released';
 
     private function __construct()
     {

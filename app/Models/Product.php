@@ -69,4 +69,14 @@ class Product extends Model
     {
         return $this->hasOne(DeliveryBatchSerial::class, 'active_product_id');
     }
+
+    public function fulfillmentOrderSerials()
+    {
+        return $this->hasMany(FulfillmentOrderSerial::class);
+    }
+
+    public function activeFulfillmentReservation()
+    {
+        return $this->hasOne(FulfillmentOrderSerial::class, 'active_product_id');
+    }
 }

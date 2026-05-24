@@ -7,6 +7,8 @@
     $statusLabel = [
         'pending_approval' => 'Chờ duyệt',
         'pending' => 'Chờ xử lý',
+        'pending_prepare' => 'Chờ soạn hàng',
+        'ready_to_deliver' => 'Chờ giao',
         'rejected' => 'Từ chối',
         'reserved' => 'Đã giữ hàng',
         'in_delivery' => 'Đang giao',

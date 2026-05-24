@@ -13,6 +13,10 @@ class FulfillmentOrder extends Model
         return [
             'approved_at' => 'datetime',
             'rejected_at' => 'datetime',
+            'prepared_at' => 'datetime',
+            'printed_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'failed_at' => 'datetime',
         ];
     }
 
@@ -44,6 +48,16 @@ class FulfillmentOrder extends Model
     public function items()
     {
         return $this->hasMany(FulfillmentOrderItem::class);
+    }
+
+    public function preparedSerials()
+    {
+        return $this->hasMany(FulfillmentOrderSerial::class);
+    }
+
+    public function exportVoucher()
+    {
+        return $this->belongsTo(ExportVoucher::class);
     }
 
     public function batchOrders()

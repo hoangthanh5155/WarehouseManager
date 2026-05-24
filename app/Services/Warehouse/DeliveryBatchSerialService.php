@@ -5,6 +5,7 @@ namespace App\Services\Warehouse;
 use App\Models\DeliveryBatch;
 use App\Models\DeliveryBatchOrder;
 use App\Models\DeliveryBatchSerial;
+use App\Models\FulfillmentOrderSerial;
 use App\Models\Product;
 use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Support\Collection;
@@ -32,6 +33,17 @@ class DeliveryBatchSerialService
             if ($activeReservations->isNotEmpty()) {
                 throw ValidationException::withMessages([
                     'serials' => 'Serial dang duoc giu o chuyen khac: ' . $activeReservations->pluck('serial_number')->implode(', '),
+                ]);
+            }
+
+            $activeOrderReservations = FulfillmentOrderSerial::query()
+                ->whereIn('active_product_id', $products->pluck('id'))
+                ->lockForUpdate()
+                ->get();
+
+            if ($activeOrderReservations->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'serials' => 'Serial dang duoc giu cho don khac: ' . $activeOrderReservations->pluck('serial_number_snapshot')->implode(', '),
                 ]);
             }
 

@@ -49,7 +49,7 @@ class SalesOrderApprovalController extends Controller
                 }
 
                 $order->update([
-                    'status' => WarehouseConstants::FULFILLMENT_PENDING,
+                    'status' => WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
                     'approved_by' => $request->user()->id,
                     'approved_at' => now(),
                     'rejected_by' => null,
