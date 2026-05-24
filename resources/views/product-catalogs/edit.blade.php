@@ -63,13 +63,10 @@
                 <input type="hidden" name="supplier_id" value="{{ $catalog->supplier_id }}">
             </div>
 
-            @php
-                $currentLoc = $catalog->products->first() && $catalog->products->first()->location ? $catalog->products->first()->location : null;
-            @endphp
             <div class="mb-3 smart-input-container">
                 <label class="fw-bold small text-secondary mb-1">Vị trí kệ (đổi hàng loạt cho hàng trong kho)</label>
-                <input type="text" id="loc_display_input" class="form-control smart-input" placeholder="Gõ tìm kiếm hoặc click để chọn kệ..." value="{{ $currentLoc ? $currentLoc->shelf_name : '' }}" autocomplete="off">
-                <input type="hidden" name="location_id" id="loc_hidden_input" value="{{ $currentLoc ? $currentLoc->id : '' }}">
+                <input type="text" id="loc_display_input" class="form-control smart-input" placeholder="Gõ tìm kiếm hoặc click để chọn kệ..." value="{{ $currentLocation ? $currentLocation->shelf_name : '' }}" autocomplete="off">
+                <input type="hidden" name="location_id" id="loc_hidden_input" value="{{ $currentLocation ? $currentLocation->id : '' }}">
                 
                 <div class="smart-menu" id="loc_menu">
                     @foreach($locations as $l) 

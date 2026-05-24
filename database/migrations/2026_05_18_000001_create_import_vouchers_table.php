@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('location_id')->nullable()->constrained('locations')->nullOnDelete();
             $table->decimal('wholesale_price', 15, 2)->default(0)->nullable();
             $table->integer('total_quantity')->default(0);
+            $table->decimal('total_cost', 15, 2)->default(0);
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->text('note')->nullable();
             $table->timestamp('imported_at')->index();

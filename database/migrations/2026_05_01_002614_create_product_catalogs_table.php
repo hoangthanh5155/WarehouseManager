@@ -17,6 +17,11 @@ return new class extends Migration
         $table->foreignId('supplier_id')->constrained()->onDelete('cascade');
         $table->string('product_name'); // VD: Galaxy S26 Ultra
         $table->string('model_prefix')->unique(); // VD: S26U (Dùng để sinh mã vạch)
+        $table->decimal('wholesale_price', 15, 2)->default(0);
+        $table->decimal('agency_margin', 5, 2)->default(0);
+        $table->decimal('profit_margin', 5, 2)->default(0);
+        $table->decimal('agency_price', 15, 2)->default(0);
+        $table->decimal('retail_price', 15, 2)->default(0);
         $table->timestamps();
     });
 }

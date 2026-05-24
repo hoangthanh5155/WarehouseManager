@@ -32,7 +32,7 @@ return new class extends Migration
             $table->string('tax_code')->nullable();
 
             // 📦 DỮ LIỆU HÀNG HÓA GỘP (Lưu toàn bộ: Tên hàng, Số lượng, Giá vốn, Giá bán, danh sách mã SN)
-            $table->longText('items'); 
+            $table->longText('items')->nullable(); 
 
             // 💰 Tài chính tổng hợp của riêng đơn đó
             $table->decimal('total_cost', 15, 2)->default(0); // Tổng giá vốn để tính lợi nhuận

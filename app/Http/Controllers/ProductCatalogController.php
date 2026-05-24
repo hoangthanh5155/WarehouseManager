@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\ProductCatalog;
+use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\Location;
 use Illuminate\Support\Facades\DB;
@@ -61,12 +62,20 @@ class ProductCatalogController extends Controller
     {
         $this->authorizeMasterData();
 
-        // Nạp thêm products để kiểm tra vị trí hiện tại của hàng trong kho
-        $catalog = ProductCatalog::with('products')->findOrFail($id);
+        // Lay vi tri tu serial con trong kho gan nhat, tranh load toan bo products/SN.
+        $catalog = ProductCatalog::findOrFail($id);
+        $currentProduct = Product::query()
+            ->where('product_catalog_id', $catalog->id)
+            ->where('status', 1)
+            ->whereNotNull('location_id')
+            ->with('location')
+            ->latest('id')
+            ->first();
+        $currentLocation = $currentProduct?->location;
         $suppliers = Supplier::all();
         $locations = Location::all();
 
-        return view('product-catalogs.edit', compact('catalog', 'suppliers', 'locations'));
+        return view('product-catalogs.edit', compact('catalog', 'suppliers', 'locations', 'currentLocation'));
     }
 
     public function show($id)

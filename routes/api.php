@@ -1,5 +1,10 @@
 <?php
 
+// NOTE: This file is not currently registered in bootstrap/app.php.
+// The active Export API routes run through routes/web.php with the api/export
+// prefix and web/auth/permission middleware.
+// Do not enable/register this file without reviewing middleware coverage first.
+
 use App\Http\Controllers\ExportController;
 
 // API kiểm tra mã SN trong kho
