@@ -12,14 +12,19 @@
         'completed' => 'success',
         'cancelled' => 'dark',
     ];
+    $statusLabel = [
+        'draft' => 'Nháp',
+        'picking' => 'Đang chuẩn bị',
+        'ready' => 'Sẵn sàng',
+        'out_for_delivery' => 'Đang giao',
+        'completed' => 'Hoàn tất',
+        'cancelled' => 'Đã hủy',
+    ];
 @endphp
 
 <div class="container-fluid px-1 px-md-2" id="deliveryBatchesIndexPage">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h3 class="fw-bold text-dark mb-1">Chuyến giao</h3>
-            <div class="text-muted">Gom đơn, giữ serial và xác nhận giao thành công để tạo phiếu xuất.</div>
-        </div>
+        <h3 class="fw-bold text-dark mb-0">Chuyến giao</h3>
         <div class="d-flex gap-2">
             <a href="{{ route('delivery.orders.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-list-check me-1"></i>Đơn cần giao
@@ -48,7 +53,7 @@
                         @forelse($batches as $batch)
                             <tr>
                                 <td class="fw-bold">{{ $batch->batch_code }}</td>
-                                <td><span class="badge text-bg-{{ $statusClass[$batch->status] ?? 'secondary' }}">{{ $batch->status }}</span></td>
+                                <td><span class="badge text-bg-{{ $statusClass[$batch->status] ?? 'secondary' }}">{{ $statusLabel[$batch->status] ?? $batch->status }}</span></td>
                                 <td class="text-end">{{ number_format($batch->batch_orders_count) }}</td>
                                 <td class="text-end">{{ number_format($batch->serials_count) }}</td>
                                 <td>{{ optional($batch->created_at)->format('d/m/Y H:i') }}</td>

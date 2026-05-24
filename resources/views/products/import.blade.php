@@ -71,7 +71,7 @@
         <div>
             <div class="page-kicker">Quản lý kho</div>
             <h4 class="m-0 fw-bold text-dark lh-base">Nhập kho</h4>
-            <div class="text-muted small">Quét serial hoặc tạo mã hàng loạt cho sản phẩm nhập kho</div>
+            <div class="text-muted small">Nhập kho</div>
         </div>
     </div>
 
@@ -136,7 +136,7 @@
                     </div>
                     <div>
                         <div class="fw-bold text-dark">Quét serial</div>
-                        <div class="text-muted small">Bắn mã SN để tự động lưu vào kho</div>
+                        <div class="text-muted small">Quét SN</div>
                     </div>
                 </div>
                 <input type="text" id="fast_sn_input" class="form-control form-control-lg border-primary shadow text-center" data-store-url="{{ route('products.store') }}" placeholder="Bắn súng quét... (Tự động lưu)" style="height: 60px; font-size: 1.3rem;" autocomplete="off">

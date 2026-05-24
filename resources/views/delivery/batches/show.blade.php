@@ -18,14 +18,27 @@
         'reserved' => 'info',
         'released' => 'dark',
     ];
+    $statusLabel = [
+        'draft' => 'Nháp',
+        'picking' => 'Đang chuẩn bị',
+        'ready' => 'Sẵn sàng',
+        'out_for_delivery' => 'Đang giao',
+        'completed' => 'Hoàn tất',
+        'cancelled' => 'Đã hủy',
+        'pending' => 'Chờ xử lý',
+        'reserved' => 'Đã giữ hàng',
+        'in_delivery' => 'Đang giao',
+        'delivered' => 'Đã giao',
+        'failed' => 'Giao thất bại',
+        'assigned' => 'Đã gán',
+        'released' => 'Đã thả',
+    ];
+    $customerLabel = ['retail' => 'Khách lẻ', 'agency' => 'Đại lý'];
 @endphp
 
 <div class="container-fluid px-1 px-md-2" id="deliveryBatchShowPage">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h3 class="fw-bold text-dark mb-1">Chuyến {{ $batch->batch_code }}</h3>
-            <div class="text-muted">Reserve serial trước, chỉ trừ kho khi đơn được xác nhận giao thành công.</div>
-        </div>
+        <h3 class="fw-bold text-dark mb-0">Chuyến {{ $batch->batch_code }}</h3>
         <a href="{{ route('delivery.batches.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Danh sách chuyến
         </a>
@@ -43,7 +56,7 @@
                         </div>
                         <div class="d-flex justify-content-between gap-3">
                             <span class="text-muted">Trạng thái</span>
-                            <span class="badge text-bg-{{ $statusClass[$batch->status] ?? 'secondary' }}">{{ $batch->status }}</span>
+                            <span class="badge text-bg-{{ $statusClass[$batch->status] ?? 'secondary' }}">{{ $statusLabel[$batch->status] ?? $batch->status }}</span>
                         </div>
                         <div class="d-flex justify-content-between gap-3">
                             <span class="text-muted">Ngày tạo</span>
@@ -61,15 +74,15 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="fw-bold mb-3">Thêm đơn vào chuyến</h5>
+                    <h5 class="fw-bold mb-3">Thêm đơn</h5>
                     <form class="delivery-api-form row g-2 align-items-end" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.orders.store', $batch) }}" data-success-reload="true">
                         @csrf
                         <div class="col-md-9">
-                            <label class="form-label fw-semibold">Đơn chưa hoàn tất</label>
+                            <label class="form-label fw-semibold">Đơn cần giao</label>
                             <select name="fulfillment_order_id" class="form-select" required>
-                                <option value="">Chọn đơn cần giao</option>
+                                <option value="">Chọn đơn</option>
                                 @foreach($availableOrders as $order)
-                                    <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name }} ({{ $order->status }}, SL {{ $order->total_quantity ?? 0 }})</option>
+                                    <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name }} (SL {{ $order->total_quantity ?? 0 }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -86,17 +99,16 @@
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="fw-bold mb-3">Quét SN vào chuyến</h5>
+                    <h5 class="fw-bold mb-3">Quét SN</h5>
                     <form class="delivery-api-form mb-3" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.serials.reserve', $batch) }}" data-success-reload="true" data-serial-list-form="serials">
                         @csrf
-                        <label class="form-label fw-semibold">Serial number</label>
+                        <label class="form-label fw-semibold">Serial</label>
                         <div class="input-group">
                             <input type="text" class="form-control" name="serials[]" placeholder="Quét hoặc nhập SN">
                             <button class="btn btn-primary fw-semibold" type="submit">
                                 <i class="bi bi-upc-scan me-1"></i>Giữ SN
                             </button>
                         </div>
-                        <div class="form-text">Mỗi lần quét một SN. Product vẫn status = 1 cho đến khi giao thành công.</div>
                     </form>
 
                     <div class="table-responsive" style="max-height: 420px;">
@@ -114,11 +126,11 @@
                                     <tr>
                                         <td class="fw-semibold">{{ $serial->serial_number }}</td>
                                         <td>{{ $serial->productCatalog->product_name ?? 'N/A' }}</td>
-                                        <td><span class="badge text-bg-{{ $statusClass[$serial->status] ?? 'secondary' }}">{{ $serial->status }}</span></td>
+                                        <td><span class="badge text-bg-{{ $statusClass[$serial->status] ?? 'secondary' }}">{{ $statusLabel[$serial->status] ?? $serial->status }}</span></td>
                                         <td>{{ $serial->deliveryBatchOrder?->fulfillmentOrder?->order_code ?: '-' }}</td>
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4" class="text-center text-muted py-3">Chưa giữ SN nào.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Chưa có dữ liệu.</td></tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -136,9 +148,9 @@
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                                 <div>
                                     <h5 class="fw-bold mb-1">{{ $order->order_code }}</h5>
-                                    <div class="text-muted">{{ $order->buyer_name }} · {{ $order->customer_type }}</div>
+                                    <div class="text-muted">{{ $order->buyer_name }} · {{ $customerLabel[$order->customer_type] ?? $order->customer_type }}</div>
                                 </div>
-                                <span class="badge align-self-start text-bg-{{ $statusClass[$batchOrder->status] ?? 'secondary' }}">{{ $batchOrder->status }}</span>
+                                <span class="badge align-self-start text-bg-{{ $statusClass[$batchOrder->status] ?? 'secondary' }}">{{ $statusLabel[$batchOrder->status] ?? $batchOrder->status }}</span>
                             </div>
 
                             <div class="table-responsive mb-3">
@@ -166,24 +178,23 @@
 
                             <form class="delivery-api-form mb-3" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.serials.assign', $batchOrder) }}" data-success-reload="true" data-serial-lines-form="serials">
                                 @csrf
-                                <label class="form-label fw-semibold">SN xác minh cho đơn</label>
-                                <textarea class="form-control" name="serials" rows="2" placeholder="Quét nhiều SN, mỗi dòng một SN"></textarea>
-                                <div class="form-text">SN phải đã được giữ trong chuyến và đúng product_catalog_id của đơn.</div>
+                                <label class="form-label fw-semibold">SN xác minh</label>
+                                <textarea class="form-control" name="serials" rows="2" placeholder="Mỗi dòng một SN"></textarea>
                                 <button class="btn btn-outline-primary btn-sm mt-2" type="submit">
                                     <i class="bi bi-check2-square me-1"></i>Xác minh SN
                                 </button>
                             </form>
 
                             <div class="d-flex flex-wrap gap-2">
-                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.deliver', $batchOrder) }}" data-success-reload="true" data-confirm="Xác nhận giao thành công và tạo phiếu xuất thật?">
+                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.deliver', $batchOrder) }}" data-success-reload="true" data-confirm="Xác nhận giao thành công?">
                                     @csrf
                                     <button class="btn btn-success btn-sm fw-semibold" type="submit">
                                         <i class="bi bi-truck me-1"></i>Giao thành công
                                     </button>
                                 </form>
-                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.fail', $batchOrder) }}" data-success-reload="true" data-confirm="Đánh dấu giao thất bại và release serial?">
+                                <form class="delivery-api-form" method="POST" data-method="POST" data-endpoint="{{ route('delivery.orders.fail', $batchOrder) }}" data-success-reload="true" data-confirm="Đánh dấu giao thất bại?">
                                     @csrf
-                                    <input type="hidden" name="note" value="Giao thất bại từ màn chuyến giao">
+                                    <input type="hidden" name="note" value="Giao thất bại">
                                     <button class="btn btn-outline-danger btn-sm" type="submit">
                                         <i class="bi bi-x-circle me-1"></i>Giao thất bại
                                     </button>
@@ -193,7 +204,7 @@
                     </div>
                 @empty
                     <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center text-muted py-5">Chuyến này chưa có đơn.</div>
+                        <div class="card-body text-center text-muted py-5">Chưa có đơn hàng.</div>
                     </div>
                 @endforelse
             </div>

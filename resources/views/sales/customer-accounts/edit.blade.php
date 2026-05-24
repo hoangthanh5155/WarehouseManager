@@ -16,7 +16,7 @@
     @method('PUT')
     <div class="card-body row g-3">
         <div class="col-md-12">
-            <label class="form-label fw-semibold">Customer liên kết</label>
+            <label class="form-label fw-semibold">Khách hàng liên kết</label>
             <select name="customer_id" class="form-select">
                 <option value="">Không liên kết</option>
                 @foreach($customers as $customer)
@@ -27,23 +27,23 @@
         <div class="col-md-6">
             <label class="form-label fw-semibold">Loại tài khoản</label>
             <select name="account_type" class="form-select">
-                <option value="retail" @selected($customerPortalUser->account_type === 'retail')>retail</option>
-                <option value="store" @selected($customerPortalUser->account_type === 'store')>store</option>
+                <option value="retail" @selected($customerPortalUser->account_type === 'retail')>Khách lẻ</option>
+                <option value="store" @selected($customerPortalUser->account_type === 'store')>Cửa hàng</option>
             </select>
         </div>
         <div class="col-md-6">
             <label class="form-label fw-semibold">Nhóm giá</label>
             <select name="customer_type" class="form-select">
-                <option value="retail" @selected($customerPortalUser->customer_type === 'retail')>retail</option>
-                <option value="agency" @selected($customerPortalUser->customer_type === 'agency')>agency</option>
+                <option value="retail" @selected($customerPortalUser->customer_type === 'retail')>Khách lẻ</option>
+                <option value="agency" @selected($customerPortalUser->customer_type === 'agency')>Đại lý</option>
             </select>
         </div>
         <div class="col-md-6">
             <label class="form-label fw-semibold">Trạng thái duyệt</label>
             <select name="approval_status" class="form-select">
-                <option value="pending" @selected($customerPortalUser->approval_status === 'pending')>pending</option>
-                <option value="approved" @selected($customerPortalUser->approval_status === 'approved')>approved</option>
-                <option value="rejected" @selected($customerPortalUser->approval_status === 'rejected')>rejected</option>
+                <option value="pending" @selected($customerPortalUser->approval_status === 'pending')>Chờ duyệt</option>
+                <option value="approved" @selected($customerPortalUser->approval_status === 'approved')>Đã duyệt</option>
+                <option value="rejected" @selected($customerPortalUser->approval_status === 'rejected')>Từ chối</option>
             </select>
         </div>
         <div class="col-md-6 d-flex align-items-end">

@@ -1,14 +1,11 @@
 @extends('layouts.shop')
 
-@section('title', 'Sản phẩm đại lý')
+@section('title', 'Sản phẩm')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
-    <div>
-        <h2 class="fw-bold mb-0">Sản phẩm đại lý</h2>
-        <div class="text-muted small">Giá đại lý được áp dụng cho tài khoản cửa hàng đã duyệt.</div>
-    </div>
-    <a href="{{ route('store.dashboard') }}" class="btn btn-outline-secondary btn-sm">Khu vực cửa hàng</a>
+    <h2 class="fw-bold mb-0">Sản phẩm</h2>
+    <a href="{{ route('store.dashboard') }}" class="btn btn-outline-secondary btn-sm">Cửa hàng</a>
 </div>
 
 <div class="row g-2 g-md-3">
@@ -22,7 +19,6 @@
                 <div class="card-body d-flex flex-column">
                     <div class="shop-product-title fw-bold text-dark mb-1">{{ $catalog->product_name }}</div>
                     <div class="text-primary fw-bold shop-price mb-1">{{ number_format($price) }} đ</div>
-                    <div class="mb-2"><span class="badge rounded-pill text-bg-primary">Giá đại lý</span></div>
                     <form method="POST" action="{{ route('shop.cart.add') }}" class="mt-auto d-flex gap-1 gap-sm-2">
                         @csrf
                         <input type="hidden" name="product_catalog_id" value="{{ $catalog->id }}">

@@ -187,7 +187,7 @@
                 <div>
                     <div class="text-uppercase text-primary fw-bold small mb-1">Bản tin vận hành</div>
                     <h3 class="overview-title fw-bold text-dark m-0">TỔNG QUAN HỆ THỐNG</h3>
-                    <div class="overview-note">Cập nhật tình hình kinh doanh và kho hàng</div>
+                    <div class="overview-note">Tổng quan nhanh</div>
                 </div>
             </div>
             <div class="d-flex align-items-start align-items-md-end flex-column gap-2">
@@ -207,7 +207,7 @@
                 <div class="overview-card overview-kpi">
                     <div class="d-flex align-items-start gap-3">
                         <div class="overview-icon bg-success-subtle text-success"><i class="bi bi-boxes"></i></div>
-                        <div><div class="overview-label">Sản phẩm tồn kho</div><div class="overview-value">{{ number_format($totalInStock) }}</div><div class="overview-note mt-1">SN đang ở trạng thái tồn</div></div>
+                        <div><div class="overview-label">Sản phẩm tồn kho</div><div class="overview-value">{{ number_format($totalInStock) }}</div></div>
                     </div>
                 </div>
             </div>
@@ -225,7 +225,7 @@
             <div class="col-lg-6">
                 <div class="overview-card p-4 h-100">
                     <h5 class="fw-bold text-dark mb-1">Điểm nổi bật kho hàng</h5>
-                    <div class="overview-note mb-3">Không hiển thị doanh thu, giá vốn hoặc giá trị tồn kho.</div>
+                    <div class="overview-note mb-3">Tổng quan kho</div>
                     <div class="fw-bold small text-uppercase text-danger mb-2">Sắp hết hàng</div>
                     @forelse($lowStockList as $item)
                         <div class="metric-row"><span class="fw-bold text-truncate">{{ $item->product_name }}</span><strong>{{ number_format($item->stock_count) }}</strong></div>
@@ -243,7 +243,7 @@
             <div class="col-lg-6">
                 <div class="overview-card p-4 h-100">
                     <h5 class="fw-bold text-dark mb-1">Hoạt động gần đây</h5>
-                    <div class="overview-note mb-3">Phiếu xuất và nhập kho mới nhất.</div>
+                    <div class="overview-note mb-3">Hoạt động mới nhất</div>
                     @forelse($recentVouchers as $voucher)
                         <div class="activity-item"><div class="activity-icon bg-primary-subtle text-primary"><i class="bi bi-receipt"></i></div><div><strong class="text-primary">{{ $voucher->export_code }}</strong><div class="text-muted small">{{ $voucher->buyer_name ?: $voucher->company_name ?: 'N/A' }}</div></div></div>
                     @empty
@@ -280,7 +280,7 @@
                         <div class="min-w-0">
                             <div class="overview-label">Sản phẩm tồn kho</div>
                             <div class="overview-value">{{ number_format($totalInStock) }}</div>
-                            <div class="overview-note mt-1">SN đang ở trạng thái tồn</div>
+                            <div class="overview-note mt-1">Đang có trong kho</div>
                         </div>
                     </div>
                 </div>
@@ -292,7 +292,7 @@
                         <div class="min-w-0">
                             <div class="overview-label">Giá trị tồn kho</div>
                             <div class="overview-value">{{ $money($inventoryValue) }}</div>
-                            <div class="overview-note mt-1">Theo giá vốn hiện tại</div>
+                            <div class="overview-note mt-1">Hiện tại</div>
                         </div>
                     </div>
                 </div>
@@ -342,7 +342,7 @@
             <div class="col-xl-4">
                 <div class="overview-card p-4 h-100">
                     <h5 class="fw-bold text-dark mb-1">Hiệu quả tháng</h5>
-                    <div class="overview-note mb-3">Tóm tắt dòng tiền bán hàng</div>
+                    <div class="overview-note mb-3">Tháng hiện tại</div>
                     <div class="metric-row">
                         <span class="text-muted">Doanh thu hôm nay</span>
                         <strong>{{ $money($todayRevenue) }}</strong>
@@ -365,7 +365,7 @@
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
                             <h5 class="fw-bold text-dark mb-1">Điểm nổi bật kho hàng</h5>
-                            <div class="overview-note">Ưu tiên các nhóm hàng cần chú ý</div>
+                            <div class="overview-note">Cần chú ý</div>
                         </div>
                         <i class="bi bi-box-seam text-primary fs-4"></i>
                     </div>
@@ -404,7 +404,7 @@
             <div class="col-xl-3">
                 <div class="overview-card p-4 h-100">
                     <h5 class="fw-bold text-dark mb-1">Giá trị cao</h5>
-                    <div class="overview-note mb-3">Theo số lượng tồn x giá vốn</div>
+                    <div class="overview-note mb-3">Giá trị tồn</div>
                     @forelse($highInventoryValueProducts as $item)
                         <div class="metric-row">
                             <div class="text-truncate">
@@ -422,7 +422,7 @@
             <div class="col-xl-4">
                 <div class="overview-card p-4 h-100">
                     <h5 class="fw-bold text-dark mb-1">Hoạt động gần đây</h5>
-                    <div class="overview-note mb-3">Phiếu xuất và nhập kho mới nhất</div>
+                    <div class="overview-note mb-3">Hoạt động mới nhất</div>
 
                     @forelse($recentVouchers as $voucher)
                         <div class="activity-item">
@@ -464,7 +464,7 @@
     <div class="d-md-none">
         <div class="overview-card p-3 mb-3">
             <div class="fw-bold text-dark">Xem nhanh theo mục</div>
-            <div class="overview-note">Vuốt ngang hoặc chọn mục để xem nhanh</div>
+            <div class="overview-note">Xem nhanh</div>
             <div class="overview-mobile-tabs mt-3">
                 <button type="button" class="overview-mobile-tab active" data-overview-index="0">Tổng số</button>
                 <button type="button" class="overview-mobile-tab" data-overview-index="1">7 ngày</button>
@@ -512,7 +512,7 @@
             <section class="overview-mobile-section">
                 <div class="overview-card p-3">
                     <div class="fw-bold text-dark mb-1">Kho hàng</div>
-                    <div class="overview-note mb-3">Sản phẩm có tồn kho nhỏ hơn hoặc bằng {{ $lowStockThreshold }} được tính là sắp hết.</div>
+                    <div class="overview-note mb-3">Tồn <= {{ $lowStockThreshold }}</div>
 
                     <div class="fw-bold small text-uppercase text-danger mb-2">Sắp hết</div>
                     @forelse($lowStockList->take(4) as $item)
@@ -545,7 +545,7 @@
             <section class="overview-mobile-section">
                 <div class="overview-card p-3">
                     <div class="fw-bold text-dark mb-1">Hoạt động gần đây</div>
-                    <div class="overview-note mb-2">Phiếu xuất và nhập kho mới nhất</div>
+                    <div class="overview-note mb-2">Hoạt động mới nhất</div>
 
                     @forelse($recentVouchers->take(4) as $voucher)
                         <div class="activity-item">

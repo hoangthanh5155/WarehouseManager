@@ -5,10 +5,7 @@
 @section('content')
 <div class="container-fluid px-1 px-md-2" id="deliveryOrderCreatePage">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h3 class="fw-bold text-dark mb-1">Tạo đơn cần giao</h3>
-            <div class="text-muted">Tạo đơn fulfillment thủ công, chưa trừ kho và chưa tạo phiếu xuất.</div>
-        </div>
+        <h3 class="fw-bold text-dark mb-0">Tạo đơn cần giao</h3>
         <a href="{{ route('delivery.orders.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Danh sách đơn
         </a>
@@ -25,14 +22,14 @@
                 <div class="col-md-3">
                     <label class="form-label fw-semibold">Nhóm khách</label>
                     <select name="customer_type" class="form-select">
-                        <option value="retail">retail</option>
-                        <option value="agency">agency</option>
+                        <option value="retail">Khách lẻ</option>
+                        <option value="agency">Đại lý</option>
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Khách hàng có sẵn</label>
+                    <label class="form-label fw-semibold">Khách hàng</label>
                     <select name="customer_id" class="form-select">
-                        <option value="">Tạo theo thông tin nhập</option>
+                        <option value="">Khách mới</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}">{{ $customer->name }}</option>
                         @endforeach

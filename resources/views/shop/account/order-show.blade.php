@@ -3,12 +3,23 @@
 @section('title', $order->order_code)
 
 @section('content')
+@php
+    $statusLabel = [
+        'pending' => 'Chờ xử lý',
+        'reserved' => 'Đã giữ hàng',
+        'in_delivery' => 'Đang giao',
+        'delivered' => 'Đã giao',
+        'failed' => 'Giao thất bại',
+        'cancelled' => 'Đã hủy',
+    ];
+@endphp
+
 <a href="{{ route('shop.account.orders') }}" class="btn btn-link px-0"><i class="bi bi-arrow-left"></i> Đơn hàng</a>
 <h2 class="fw-bold mb-3">{{ $order->order_code }}</h2>
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         <div class="row g-3 mb-3">
-            <div class="col-md-4"><div class="text-muted">Trạng thái</div><strong>{{ $order->status }}</strong></div>
+            <div class="col-md-4"><div class="text-muted">Trạng thái</div><strong>{{ $statusLabel[$order->status] ?? $order->status }}</strong></div>
             <div class="col-md-4"><div class="text-muted">Người mua</div><strong>{{ $order->buyer_name }}</strong></div>
             <div class="col-md-4"><div class="text-muted">Ngày tạo</div><strong>{{ optional($order->created_at)->format('d/m/Y H:i') }}</strong></div>
         </div>

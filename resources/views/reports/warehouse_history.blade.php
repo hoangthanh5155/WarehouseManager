@@ -12,7 +12,7 @@
     <div class="bg-white border-0 shadow-sm rounded-4 p-3 p-md-4 mb-3">
         <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
             <div>
-                <div class="text-uppercase text-primary fw-bold small mb-1">Báo cáo - Thống kê</div>
+                <div class="text-uppercase text-primary fw-bold small mb-1">Báo cáo</div>
                 <h3 class="fw-bold text-dark m-0">Lịch sử kho</h3>
                 <div class="text-muted small mt-1">{{ $startDate->format('d/m/Y') }} - {{ $endDate->format('d/m/Y') }}</div>
             </div>
@@ -60,34 +60,34 @@
             </div>
             <div class="col-12">
                 <button class="btn btn-primary fw-bold">
-                    <i class="bi bi-funnel me-1"></i>Lọc lịch sử
+                    <i class="bi bi-funnel me-1"></i>Lọc
                 </button>
             </div>
         </form>
     </div>
 
     <div class="row g-2 g-md-3 mb-3">
-        <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Tổng movement</div><div class="fs-4 fw-bold">{{ number_format($summary->total_movements ?? 0) }}</div></div></div>
+        <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Tổng phát sinh</div><div class="fs-4 fw-bold">{{ number_format($summary->total_movements ?? 0) }}</div></div></div>
         <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">SN nhập</div><div class="fs-4 fw-bold text-success">{{ number_format($summary->imported_qty ?? 0) }}</div></div></div>
         <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">SN xuất</div><div class="fs-4 fw-bold text-primary">{{ number_format($summary->exported_qty ?? 0) }}</div></div></div>
-        <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Sản phẩm ảnh hưởng</div><div class="fs-4 fw-bold">{{ number_format($summary->product_count ?? 0) }}</div></div></div>
+        <div class="col-6 col-lg-3"><div class="bg-white shadow-sm rounded-4 p-3 h-100"><div class="text-muted small fw-bold">Sản phẩm</div><div class="fs-4 fw-bold">{{ number_format($summary->product_count ?? 0) }}</div></div></div>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 mb-3">
         <div class="card-body p-3">
-            <h5 class="fw-bold text-dark mb-3">Tổng hợp theo ngày</h5>
+            <h5 class="fw-bold text-dark mb-3">Theo ngày</h5>
             <div class="row g-2">
                 @forelse($dailyGroups as $day)
                     <div class="col-md-6 col-xl-4">
                         <a class="d-block border rounded-3 p-3 text-decoration-none bg-light h-100" href="{{ route('reports.warehouse_history', array_merge(request()->query(), ['start_date' => $day->movement_date, 'end_date' => $day->movement_date])) }}">
                             <div class="fw-bold text-dark">{{ \Carbon\Carbon::parse($day->movement_date)->format('d/m/Y') }}</div>
-                            <div class="small text-muted mt-1">{{ number_format($day->import_count) }} lần nhập · {{ number_format($day->export_count) }} lần xuất · {{ number_format($day->imported_qty) }} SN nhập · {{ number_format($day->exported_qty) }} SN xuất</div>
+                            <div class="small text-muted mt-1">{{ number_format($day->import_count) }} nhập · {{ number_format($day->export_count) }} xuất · {{ number_format($day->imported_qty) }} SN nhập · {{ number_format($day->exported_qty) }} SN xuất</div>
                             <div class="small text-primary fw-bold mt-2">Xem chi tiết</div>
                         </a>
                     </div>
                 @empty
                     <div class="col-12 text-center text-muted py-3">
-                        Không có dữ liệu trong khoảng thời gian này. Hãy mở rộng khoảng ngày.
+                        Chưa có dữ liệu.
                     </div>
                 @endforelse
             </div>
@@ -96,7 +96,7 @@
 
     <div class="card border-0 shadow-sm rounded-4">
         <div class="card-body p-3">
-            <h5 class="fw-bold text-dark mb-3">Chi tiết theo sản phẩm</h5>
+            <h5 class="fw-bold text-dark mb-3">Theo sản phẩm</h5>
             @forelse($productGroups as $productName => $groupMovements)
                 <div class="border rounded-3 mb-3 overflow-hidden">
                     <div class="bg-light p-3 d-flex flex-column flex-md-row justify-content-between gap-2">
@@ -112,7 +112,7 @@
                                 <tr>
                                     <th>Serial</th>
                                     <th>Loại</th>
-                                    <th>Trạng thái hiện tại</th>
+                                    <th>Trạng thái</th>
                                     <th>Vị trí / Phiếu</th>
                                     <th>Thời gian</th>
                                     <th>Người thao tác</th>
@@ -147,7 +147,7 @@
                 </div>
             @empty
                 <div class="text-center text-muted py-4">
-                    Không có dữ liệu trong khoảng thời gian này. Hãy mở rộng khoảng ngày.
+                    Chưa có dữ liệu.
                 </div>
             @endforelse
 

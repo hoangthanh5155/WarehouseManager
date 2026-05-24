@@ -49,7 +49,7 @@
             <div>
                 <div class="page-kicker">Quản lý sản phẩm</div>
                 <h4 class="fw-bold text-dark m-0">Chi tiết mẫu sản phẩm</h4>
-                <div class="text-muted small">Cập nhật biên lợi nhuận và xem serial còn tồn</div>
+                <div class="text-muted small">Thông tin sản phẩm</div>
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@
                     </div>
                     <div>
                         <h6 class="fw-bold mb-0 text-dark">Thiết lập giá bán</h6>
-                        <div class="text-muted small">Điều chỉnh theo phần trăm lợi nhuận</div>
+                        <div class="text-muted small">Bảng giá</div>
                     </div>
                 </div>
                 <form action="{{ route('products.showCatalog', $catalog->id) }}" method="POST">
@@ -87,7 +87,7 @@
                         <input type="number" id="wholesale_price" class="form-control bg-light fw-bold text-success fs-5" 
                                value="{{ (int) $catalog->wholesale_price }}" readonly>
                         <input type="hidden" name="wholesale_price" value="{{ (int) $catalog->wholesale_price }}">
-                        <small class="text-muted" style="font-size: 0.75rem;">Giá nhập tự cập nhật theo lần nhập kho gần nhất.</small>
+
                     </div>
 
                     <div class="row g-2 mb-3">

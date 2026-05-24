@@ -12,14 +12,21 @@
         'failed' => 'danger',
         'cancelled' => 'dark',
     ];
+    $statusLabel = [
+        'pending' => 'Chờ xử lý',
+        'reserved' => 'Đã giữ hàng',
+        'in_delivery' => 'Đang giao',
+        'delivered' => 'Đã giao',
+        'failed' => 'Giao thất bại',
+        'cancelled' => 'Đã hủy',
+    ];
+    $typeLabel = ['manual' => 'Thủ công', 'system' => 'Hệ thống', 'guest' => 'Khách lẻ'];
+    $customerLabel = ['retail' => 'Khách lẻ', 'agency' => 'Đại lý'];
 @endphp
 
 <div class="container-fluid px-1 px-md-2">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h3 class="fw-bold text-dark mb-1">Đơn cần giao</h3>
-            <div class="text-muted">Danh sách đơn fulfillment dùng cho chuyến giao.</div>
-        </div>
+        <h3 class="fw-bold text-dark mb-0">Đơn cần giao</h3>
         <a href="{{ route('delivery.orders.create') }}" class="btn btn-primary fw-semibold">
             <i class="bi bi-plus-lg me-1"></i>Tạo đơn
         </a>
@@ -45,17 +52,17 @@
                         @forelse($orders as $order)
                             <tr>
                                 <td class="fw-bold">{{ $order->order_code }}</td>
-                                <td>{{ $order->order_type }}</td>
+                                <td>{{ $typeLabel[$order->order_type] ?? $order->order_type }}</td>
                                 <td>{{ $order->buyer_name }}</td>
-                                <td>{{ $order->customer_type }}</td>
-                                <td><span class="badge text-bg-{{ $statusClass[$order->status] ?? 'secondary' }}">{{ $order->status }}</span></td>
+                                <td>{{ $customerLabel[$order->customer_type] ?? $order->customer_type }}</td>
+                                <td><span class="badge text-bg-{{ $statusClass[$order->status] ?? 'secondary' }}">{{ $statusLabel[$order->status] ?? $order->status }}</span></td>
                                 <td class="text-end">{{ number_format($order->total_quantity ?? 0) }}</td>
                                 <td class="text-end">{{ number_format($order->total_amount ?? 0) }} đ</td>
                                 <td>{{ optional($order->created_at)->format('d/m/Y H:i') }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">Chưa có đơn cần giao.</td>
+                                <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng.</td>
                             </tr>
                         @endforelse
                     </tbody>
