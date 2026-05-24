@@ -11,6 +11,7 @@ export default defineConfig({
                 'resources/js/products/pricing.js',
                 'resources/js/dashboard/overview.js',
                 'resources/js/warehouse/export.js',
+                'resources/js/delivery-batches.js',
                 'resources/js/pages/print_invoice.js',
             ],
             refresh: true,

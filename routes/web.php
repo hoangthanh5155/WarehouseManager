@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryBatchController;
+use App\Http\Controllers\DeliveryBatchPageController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InternalUserController;
 use App\Http\Controllers\LocationController;
@@ -60,6 +61,13 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::get('/export', [ExportController::class, 'index'])->middleware('permission:export_stock')->name('export.index');
     Route::patch('/export/vouchers/{voucher}/metadata', [ExportController::class, 'updateMetadata'])->middleware('permission:edit_export_metadata')->name('export.metadata.update');
     Route::get('/export/print/{id}', [ExportController::class, 'print'])->middleware('permission:export_stock')->name('export.print');
+
+    Route::middleware('permission:export_stock')->group(function () {
+        Route::get('/delivery/orders', [DeliveryBatchPageController::class, 'ordersIndex'])->name('delivery.orders.index');
+        Route::get('/delivery/orders/create', [DeliveryBatchPageController::class, 'ordersCreate'])->name('delivery.orders.create');
+        Route::get('/delivery/batches', [DeliveryBatchPageController::class, 'batchesIndex'])->name('delivery.batches.index');
+        Route::get('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'batchesShow'])->name('delivery.batches.show');
+    });
 
     Route::prefix('api/export')->group(function () {
         Route::get('/check-sn/{serial_number}', [ExportController::class, 'checkSerial'])->middleware('permission:export_stock')->name('export.checkSn');

@@ -210,7 +210,7 @@
 
                 @if($canImportStock || $canExportStock || $isAdmin || $navUser?->isWarehouseManager())
                 <li class="nav-item">
-                    <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || ($canManageMasterData && (request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*'))) ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
+                    <a href="#warehouseSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->is('import*') || request()->is('delivery*') || ($canManageMasterData && (request()->is('product-catalogs*') || request()->is('suppliers*') || request()->is('locations*'))) ? 'active' : '' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="false" aria-controls="warehouseSubmenu">
                         <div><i class="bi bi-archive-fill menu-icon"></i>Quản lý kho</div>
                         <i class="bi bi-chevron-down arrow-icon"></i>
                     </a>
@@ -220,6 +220,8 @@
                         @endif
                         @if($canExportStock)
                             <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
+                            <li><a href="{{ route('delivery.batches.index') }}" class="nav-link {{ request()->routeIs('delivery.batches.*') ? 'active' : '' }}">Chuyến giao</a></li>
+                            <li><a href="{{ route('delivery.orders.index') }}" class="nav-link {{ request()->routeIs('delivery.orders.*') ? 'active' : '' }}">Đơn cần giao</a></li>
                         @endif
                         @if($canTraceSerial)
                             <li><a href="{{ route('serial.trace.index') }}" class="nav-link {{ request()->routeIs('serial.trace.*') ? 'active' : '' }}">Truy vết Serial</a></li>
