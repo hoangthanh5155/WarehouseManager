@@ -41,7 +41,7 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::get('/import', [ProductController::class, 'import'])->middleware('permission:import_stock')->name('products.import');
     Route::post('/import/store', [ProductController::class, 'storeManual'])->middleware('permission:import_stock')->name('products.store');
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('permission:operations_dashboard')->name('dashboard');
     Route::get('/reports/revenue', [ReportController::class, 'revenue'])->middleware('permission:financial_reports')->name('reports.revenue');
     Route::get('/reports/inventory-summary', [ReportController::class, 'inventorySummary'])->middleware('permission:warehouse_reports')->name('reports.inventory_summary');
     Route::get('/reports/warehouse-history', [ReportController::class, 'warehouseHistory'])->middleware('permission:warehouse_history')->name('reports.warehouse_history');

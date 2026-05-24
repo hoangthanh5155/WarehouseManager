@@ -249,7 +249,7 @@
                     @empty
                     @endforelse
                     @forelse($recentImports as $item)
-                        <div class="activity-item"><div class="activity-icon bg-success-subtle text-success"><i class="bi bi-box-arrow-in-down"></i></div><div><strong>{{ $item->productCatalog->product_name ?? 'N/A' }}</strong><div class="text-muted small">{{ $item->supplier->name ?? 'N/A' }} · {{ $item->location->shelf_name ?? 'N/A' }}</div></div></div>
+                        <div class="activity-item"><div class="activity-icon bg-success-subtle text-success"><i class="bi bi-box-arrow-in-down"></i></div><div><strong>{{ $item->import_code }}</strong><div class="text-muted small">{{ $item->productCatalog->product_name ?? 'N/A' }} · {{ $item->supplier->name ?? 'N/A' }}</div></div></div>
                     @empty
                     @endforelse
                     @if($recentVouchers->isEmpty() && $recentImports->isEmpty())
@@ -433,7 +433,7 @@
                                     <span class="badge bg-light text-dark border">{{ optional($voucher->exported_at)->format('d/m') }}</span>
                                 </div>
                                 <div class="text-muted small text-truncate">{{ $voucher->buyer_name ?: $voucher->company_name ?: 'N/A' }}</div>
-                                <div class="fw-bold">{{ $money($voucher->total_amount) }}</div>
+                                <div class="fw-bold">{{ $money($voucher->item_total_amount ?? $voucher->total_amount) }}</div>
                             </div>
                         </div>
                     @empty
@@ -444,10 +444,10 @@
                             <div class="activity-icon bg-success-subtle text-success"><i class="bi bi-box-arrow-in-down"></i></div>
                             <div class="min-w-0 flex-grow-1">
                                 <div class="d-flex justify-content-between gap-2">
-                                    <strong class="text-dark text-truncate">{{ $item->productCatalog->product_name ?? 'N/A' }}</strong>
-                                    <span class="badge bg-light text-dark border">{{ optional($item->created_at)->format('d/m') }}</span>
+                                    <strong class="text-dark text-truncate">{{ $item->import_code }}</strong>
+                                    <span class="badge bg-light text-dark border">{{ optional($item->imported_at)->format('d/m') }}</span>
                                 </div>
-                                <div class="text-muted small text-truncate">{{ $item->supplier->name ?? 'N/A' }} · {{ $item->location->shelf_name ?? 'N/A' }}</div>
+                                <div class="text-muted small text-truncate">{{ $item->productCatalog->product_name ?? 'N/A' }} · {{ $item->supplier->name ?? 'N/A' }}</div>
                             </div>
                         </div>
                     @empty
@@ -553,7 +553,7 @@
                             <div class="min-w-0 flex-grow-1">
                                 <div class="fw-bold text-primary text-truncate">{{ $voucher->export_code }}</div>
                                 <div class="text-muted small text-truncate">{{ $voucher->buyer_name ?: $voucher->company_name ?: 'N/A' }}</div>
-                                <div class="fw-bold">{{ $money($voucher->total_amount) }}</div>
+                                <div class="fw-bold">{{ $money($voucher->item_total_amount ?? $voucher->total_amount) }}</div>
                             </div>
                         </div>
                     @empty
@@ -563,8 +563,8 @@
                         <div class="activity-item">
                             <div class="activity-icon bg-success-subtle text-success"><i class="bi bi-box-arrow-in-down"></i></div>
                             <div class="min-w-0 flex-grow-1">
-                                <div class="fw-bold text-dark text-truncate">{{ $item->productCatalog->product_name ?? 'N/A' }}</div>
-                                <div class="text-muted small text-truncate">{{ $item->supplier->name ?? 'N/A' }} · {{ $item->location->shelf_name ?? 'N/A' }}</div>
+                                <div class="fw-bold text-dark text-truncate">{{ $item->import_code }}</div>
+                                <div class="text-muted small text-truncate">{{ $item->productCatalog->product_name ?? 'N/A' }} · {{ $item->supplier->name ?? 'N/A' }}</div>
                             </div>
                         </div>
                     @empty
