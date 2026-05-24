@@ -474,7 +474,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (res.success) {
                     verifySnModal.hide();
                     alert('Lưu đơn xuất kho thành công! Hệ thống chuyển hướng in ngay.');
-                    window.location.href = `/export/print/${res.main_voucher_id}`;
+                    const printUrl = res.data?.print_url || `/export/print/${res.data?.export_voucher_id}`;
+                    window.location.href = printUrl;
                 } else {
                     alert('Lỗi: ' + res.message);
                     btnConfirmAndSave.disabled = false;
