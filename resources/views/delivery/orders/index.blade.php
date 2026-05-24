@@ -36,7 +36,7 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-body p-0">
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
@@ -105,60 +105,6 @@
                                     </div>
                                 </td>
                             </tr>
-
-                            <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                                    <div class="modal-content border-0 shadow">
-                                        <form method="POST" action="{{ route('delivery.orders.confirm_deliver', $order) }}">
-                                            @csrf
-                                            <div class="modal-header bg-light">
-                                                <div>
-                                                    <h5 class="modal-title fw-bold">Xác nhận giao hàng</h5>
-                                                    <div class="text-muted small">{{ $order->order_code }} - {{ $order->buyer_name }}</div>
-                                                </div>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="table-responsive mb-3">
-                                                    <table class="table table-sm align-middle">
-                                                        <thead class="table-light">
-                                                            <tr>
-                                                                <th>Sản phẩm</th>
-                                                                <th class="text-end">SL</th>
-                                                                <th>SN đã soạn</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($order->items as $item)
-                                                                @php($itemSerials = $preparedSerials->where('fulfillment_order_item_id', $item->id))
-                                                                <tr>
-                                                                    <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
-                                                                    <td class="text-end">{{ number_format($item->quantity) }}</td>
-                                                                    <td>
-                                                                        <div class="d-flex flex-wrap gap-1">
-                                                                            @foreach($itemSerials as $serial)
-                                                                                <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
-                                                                            @endforeach
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                                <label class="form-label fw-semibold">SN xác nhận</label>
-                                                <textarea name="serials" rows="5" class="form-control" required>{{ $preparedSerials->pluck('serial_number_snapshot')->implode("\n") }}</textarea>
-                                                <label class="form-label fw-semibold mt-3">Ghi chú</label>
-                                                <textarea name="note" rows="2" class="form-control"></textarea>
-                                            </div>
-                                            <div class="modal-footer bg-light">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                                <button type="submit" class="btn btn-success fw-bold">Giao thành công</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
                             <tr>
                                 <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng.</td>
@@ -167,10 +113,168 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="delivery-order-mobile-list d-md-none">
+                @forelse($orders as $order)
+                    @php
+                        $modalId = 'deliverOrderModal' . $order->id;
+                        $preparedSerials = $order->preparedSerials->where('status', 'prepared');
+                    @endphp
+                    <div class="delivery-order-card">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div class="min-w-0">
+                                <div class="fw-bold text-break">{{ $order->order_code }}</div>
+                                <div class="text-muted small">{{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
+                            </div>
+                            <span class="badge text-bg-{{ $statusClass[$order->status] ?? 'secondary' }} flex-shrink-0">{{ $statusLabel[$order->status] ?? $order->status }}</span>
+                        </div>
+
+                        <div class="delivery-order-meta">
+                            <div>
+                                <span class="text-muted small d-block">Khách</span>
+                                <span class="fw-semibold text-break">{{ $order->buyer_name }}</span>
+                            </div>
+                            <div>
+                                <span class="text-muted small d-block">Tổng tiền</span>
+                                <span class="fw-bold">{{ number_format($order->total_amount ?? 0) }} đ</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <div class="text-muted small mb-1">SN đã soạn</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @forelse($preparedSerials->take(8) as $serial)
+                                    <span class="badge text-bg-light border text-break">{{ $serial->serial_number_snapshot }}</span>
+                                @empty
+                                    <span class="text-muted small">-</span>
+                                @endforelse
+                                @if($preparedSerials->count() > 8)
+                                    <span class="badge text-bg-secondary">+{{ $preparedSerials->count() - 8 }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ route('delivery.orders.print', $order) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-printer me-1"></i>In đơn
+                            </a>
+                            @if($order->public_token)
+                                <a href="{{ route('delivery.orders.public', $order->public_token) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-box-arrow-up-right me-1"></i>Phiếu điện tử
+                                </a>
+                            @endif
+                            @if(in_array($order->status, ['ready_to_deliver', 'in_delivery'], true))
+                                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
+                                    <i class="bi bi-truck me-1"></i>Giao hàng
+                                </button>
+                                <form method="POST" action="{{ route('delivery.orders.confirm_fail', $order) }}" onsubmit="return confirm('Đánh dấu giao thất bại?')">
+                                    @csrf
+                                    <button class="btn btn-sm btn-outline-danger w-100" type="submit">
+                                        <i class="bi bi-x-circle me-1"></i>Thất bại
+                                    </button>
+                                </form>
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-center text-muted py-4">Chưa có đơn hàng.</div>
+                @endforelse
+            </div>
         </div>
         @if($orders->hasPages())
             <div class="card-footer bg-white">{{ $orders->links() }}</div>
         @endif
     </div>
 </div>
+
+@foreach($orders as $order)
+    @php
+        $modalId = 'deliverOrderModal' . $order->id;
+        $preparedSerials = $order->preparedSerials->where('status', 'prepared');
+    @endphp
+    <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <form method="POST" action="{{ route('delivery.orders.confirm_deliver', $order) }}">
+                    @csrf
+                    <div class="modal-header bg-light">
+                        <div>
+                            <h5 class="modal-title fw-bold">Xác nhận giao hàng</h5>
+                            <div class="text-muted small">{{ $order->order_code }} - {{ $order->buyer_name }}</div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th class="text-end">SL</th>
+                                        <th>SN đã soạn</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($order->items as $item)
+                                        @php($itemSerials = $preparedSerials->where('fulfillment_order_item_id', $item->id))
+                                        <tr>
+                                            <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
+                                            <td class="text-end">{{ number_format($item->quantity) }}</td>
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @foreach($itemSerials as $serial)
+                                                        <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
+                                                    @endforeach
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <label class="form-label fw-semibold">SN xác nhận</label>
+                        <textarea name="serials" rows="5" class="form-control" required placeholder="Quét hoặc dán SN, mỗi dòng một SN"></textarea>
+                        <label class="form-label fw-semibold mt-3">Ghi chú</label>
+                        <textarea name="note" rows="2" class="form-control"></textarea>
+                    </div>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-success fw-bold">Giao thành công</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endforeach
 @endsection
+
+@push('styles')
+<style>
+    @media (max-width: 767.98px) {
+        .delivery-order-mobile-list {
+            padding: 12px;
+        }
+
+        .delivery-order-card {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 14px 0;
+        }
+
+        .delivery-order-card:first-child {
+            padding-top: 0;
+        }
+
+        .delivery-order-card:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .delivery-order-meta {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+        }
+    }
+</style>
+@endpush
