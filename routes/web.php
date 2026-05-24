@@ -92,7 +92,6 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
 
     Route::middleware('permission:export_stock')->group(function () {
         Route::get('/delivery/orders', [DeliveryBatchPageController::class, 'ordersIndex'])->name('delivery.orders.index');
-        Route::get('/delivery/orders/create', [DeliveryBatchPageController::class, 'ordersCreate'])->name('delivery.orders.create');
         Route::get('/delivery/batches', [DeliveryBatchPageController::class, 'batchesIndex'])->name('delivery.batches.index');
         Route::get('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'batchesShow'])->name('delivery.batches.show');
     });
@@ -103,6 +102,7 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     });
 
     Route::prefix('api/delivery-batches')->middleware('permission:export_stock')->group(function () {
+        // Deprecated for UI: Delivery screens must not create fulfillment orders directly.
         Route::post('/orders', [DeliveryBatchController::class, 'storeOrder'])->name('delivery.orders.store');
         Route::post('/', [DeliveryBatchController::class, 'storeBatch'])->name('delivery.batches.store');
         Route::post('/{deliveryBatch}/orders', [DeliveryBatchController::class, 'addOrder'])->name('delivery.batches.orders.store');

@@ -27,9 +27,6 @@
 <div class="container-fluid px-1 px-md-2">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <h3 class="fw-bold text-dark mb-0">Đơn cần giao</h3>
-        <a href="{{ route('delivery.orders.create') }}" class="btn btn-primary fw-semibold">
-            <i class="bi bi-plus-lg me-1"></i>Tạo đơn
-        </a>
     </div>
 
     <div class="card border-0 shadow-sm">

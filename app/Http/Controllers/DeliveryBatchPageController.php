@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
 use App\Models\DeliveryBatch;
 use App\Models\FulfillmentOrder;
-use App\Models\ProductCatalog;
 use App\Support\Warehouse\WarehouseConstants;
 
 class DeliveryBatchPageController extends Controller
@@ -25,17 +23,6 @@ class DeliveryBatchPageController extends Controller
             ->paginate(15);
 
         return view('delivery.orders.index', compact('orders'));
-    }
-
-    public function ordersCreate()
-    {
-        $customers = Customer::query()->orderBy('name')->get();
-        $productCatalogs = ProductCatalog::query()
-            ->withCount(['products as stock_count' => fn ($query) => $query->where('status', WarehouseConstants::PRODUCT_STATUS_IN_STOCK)])
-            ->orderBy('product_name')
-            ->get();
-
-        return view('delivery.orders.create', compact('customers', 'productCatalogs'));
     }
 
     public function batchesIndex()
