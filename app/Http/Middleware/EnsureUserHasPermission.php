@@ -26,6 +26,9 @@ class EnsureUserHasPermission
             'manage_master_data' => $user?->canManageMasterData(),
             'manage_warehouse_catalogs' => $user?->canManageWarehouseCatalogs(),
             'operations_dashboard' => $user?->canViewOperationsDashboard(),
+            'create_sales_orders' => $user?->canCreateSalesOrders(),
+            'approve_customer_orders' => $user?->canApproveCustomerOrders(),
+            'manage_cashflow' => $user?->canManageCashflow(),
             default => false,
         };
 

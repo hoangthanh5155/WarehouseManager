@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -95,11 +96,16 @@ class InternalUserController extends Controller
     {
         abort_unless(auth()->user()->canManageUser($user), 403);
 
+        $user->load('featurePermissions');
+
         return view('users.edit', [
             'managedUser' => $user,
             'manageableRoles' => $this->editableRoleOptions(auth()->user(), $user),
             'statusLabels' => $this->statusLabels(),
             'roleReadonly' => $user->role === User::ROLE_ADMIN,
+            'featurePermissionLabels' => User::featurePermissionLabels(),
+            'assignedFeaturePermissions' => $user->featurePermissionAbilities(),
+            'canManageFeaturePermissions' => auth()->user()->isAdmin() && $user->canReceiveFeaturePermissions(),
         ]);
     }
 
@@ -121,6 +127,8 @@ class InternalUserController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'phone' => ['nullable', 'string', 'max:30'],
             'status' => ['required', Rule::in(array_keys($this->statusLabels()))],
+            'feature_permissions' => ['nullable', 'array'],
+            'feature_permissions.*' => ['string', Rule::in(array_keys(User::featurePermissionLabels()))],
         ];
 
         if (!$roleReadonly) {
@@ -141,7 +149,15 @@ class InternalUserController extends Controller
             return back()->withErrors(['role' => 'Không thể tự hạ quyền Chủ kho của chính mình.'])->withInput();
         }
 
-        $user->update($validated);
+        $featurePermissions = $validated['feature_permissions'] ?? [];
+        unset($validated['feature_permissions']);
+
+        DB::transaction(function () use ($request, $user, $validated, $featurePermissions): void {
+            $user->update($validated);
+            $user->refresh();
+
+            $this->syncFeaturePermissions($request, $user, $featurePermissions);
+        });
 
         return redirect()->route('users.index')->with('success', 'Đã cập nhật tài khoản.');
     }
@@ -222,5 +238,46 @@ class InternalUserController extends Controller
         }
 
         return $this->generateTemporaryPassword($username);
+    }
+
+    /**
+     * @param array<int, string> $selectedAbilities
+     */
+    private function syncFeaturePermissions(Request $request, User $user, array $selectedAbilities): void
+    {
+        if (!$request->user()?->isAdmin()) {
+            return;
+        }
+
+        if (!$user->canReceiveFeaturePermissions()) {
+            $user->featurePermissions()->delete();
+            return;
+        }
+
+        $allowedAbilities = array_keys(User::featurePermissionLabels());
+        $selectedAbilities = collect($selectedAbilities)
+            ->intersect($allowedAbilities)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($selectedAbilities === []) {
+            $user->featurePermissions()->delete();
+            return;
+        }
+
+        $user->featurePermissions()
+            ->whereNotIn('ability', $selectedAbilities)
+            ->delete();
+
+        foreach ($selectedAbilities as $ability) {
+            $user->featurePermissions()->updateOrCreate(
+                ['ability' => $ability],
+                [
+                    'granted_by' => $request->user()->id,
+                    'granted_at' => now(),
+                ]
+            );
+        }
     }
 }

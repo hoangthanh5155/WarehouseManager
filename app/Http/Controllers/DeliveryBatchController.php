@@ -10,6 +10,7 @@ use App\Services\Warehouse\DeliveryBatchSerialService;
 use App\Services\Warehouse\DeliveryBatchService;
 use App\Services\Warehouse\DeliveryOrderFulfillmentService;
 use App\Services\Warehouse\FulfillmentOrderService;
+use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -38,7 +39,9 @@ class DeliveryBatchController extends Controller
         }
 
         try {
-            $order = $service->create($validator->validated() + $request->all(), $request->user()?->id);
+            $payload = $validator->validated() + $request->all();
+            $payload['status'] = WarehouseConstants::FULFILLMENT_PENDING;
+            $order = $service->create($payload, $request->user()?->id);
 
             return $this->successResponse('Da tao don can giao.', $order);
         } catch (ValidationException $e) {

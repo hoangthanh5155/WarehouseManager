@@ -126,6 +126,7 @@ class ShopController extends Controller
             'buyer_name' => $validated['buyer_name'],
             'phone' => $validated['phone'] ?? $customerUser?->phone,
             'address' => $validated['address'],
+            'status' => WarehouseConstants::FULFILLMENT_PENDING_APPROVAL,
             'note' => $validated['note'] ?? null,
             'create_customer' => false,
             'items' => $cartData['items']->map(fn ($item) => [

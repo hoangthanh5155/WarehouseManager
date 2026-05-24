@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProductCatalogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalesOrderApprovalController;
 use App\Http\Controllers\SerialTraceController;
 use App\Http\Controllers\ShopAccountController;
 use App\Http\Controllers\ShopController;
@@ -122,6 +123,13 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
         Route::get('/sales/customer-accounts', [CustomerPortalUserController::class, 'index'])->name('sales.customer_accounts.index');
         Route::get('/sales/customer-accounts/{customerPortalUser}/edit', [CustomerPortalUserController::class, 'edit'])->name('sales.customer_accounts.edit');
         Route::put('/sales/customer-accounts/{customerPortalUser}', [CustomerPortalUserController::class, 'update'])->name('sales.customer_accounts.update');
+    });
+
+    Route::middleware('permission:approve_customer_orders')->group(function () {
+        Route::get('/sales/order-approvals', [SalesOrderApprovalController::class, 'index'])->name('sales.order_approvals.index');
+        Route::get('/sales/order-approvals/{fulfillmentOrder}', [SalesOrderApprovalController::class, 'show'])->name('sales.order_approvals.show');
+        Route::post('/sales/order-approvals/{fulfillmentOrder}/approve', [SalesOrderApprovalController::class, 'approve'])->name('sales.order_approvals.approve');
+        Route::post('/sales/order-approvals/{fulfillmentOrder}/reject', [SalesOrderApprovalController::class, 'reject'])->name('sales.order_approvals.reject');
     });
 
     Route::middleware('permission:manage_settings')->group(function () {

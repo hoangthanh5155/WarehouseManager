@@ -39,7 +39,7 @@ class FulfillmentOrderService
                 'company_name' => $payload['company_name'] ?? null,
                 'address' => $payload['address'] ?? null,
                 'tax_code' => $payload['tax_code'] ?? null,
-                'status' => WarehouseConstants::FULFILLMENT_PENDING,
+                'status' => $payload['status'] ?? WarehouseConstants::FULFILLMENT_PENDING,
                 'note' => $payload['note'] ?? null,
                 'created_by' => $userId,
             ]);

@@ -153,6 +153,7 @@
                 $canViewWarehouseReports = $navUser?->canViewWarehouseReports();
                 $canViewWarehouseHistory = $navUser?->canViewWarehouseHistory();
                 $canTraceSerial = $navUser?->canTraceSerial();
+                $canApproveCustomerOrders = $navUser?->canApproveCustomerOrders();
             @endphp
 
             <ul class="sidebar-nav" id="sidebarMenu">
@@ -256,15 +257,17 @@
                     </li>
                 @endif
 
-                @if($canExportStock || $isAdmin)
+                @if($canExportStock || $canApproveCustomerOrders || $isAdmin)
                     <li class="nav-item">
-                        <a href="#salesSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('delivery.orders.*') ? 'active' : '' }}" data-sidebar-target="#salesSubmenu" role="button" aria-expanded="false" aria-controls="salesSubmenu">
+                        <a href="#salesSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('sales.order_approvals.*') ? 'active' : '' }}" data-sidebar-target="#salesSubmenu" role="button" aria-expanded="false" aria-controls="salesSubmenu">
                             <div><i class="bi bi-cart-fill menu-icon"></i>Quản lý bán hàng</div>
                             <i class="bi bi-chevron-down arrow-icon"></i>
                         </a>
                         <ul class="collapse submenu" id="salesSubmenu">
                             <li><a href="{{ route('shop.index') }}" target="_blank" rel="noopener" class="nav-link">Trang bán hàng</a></li>
-                            <li><a href="{{ route('delivery.orders.index') }}" class="nav-link {{ request()->routeIs('delivery.orders.*') ? 'active' : '' }}">Xác nhận đơn hàng</a></li>
+                            @if($canApproveCustomerOrders)
+                                <li><a href="{{ route('sales.order_approvals.index') }}" class="nav-link {{ request()->routeIs('sales.order_approvals.*') ? 'active' : '' }}">Xác nhận đơn hàng</a></li>
+                            @endif
                         </ul>
                     </li>
                 @endif

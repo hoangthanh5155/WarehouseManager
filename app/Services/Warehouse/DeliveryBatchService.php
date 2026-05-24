@@ -30,11 +30,8 @@ class DeliveryBatchService
             throw ValidationException::withMessages(['delivery_batch_id' => 'Chuyen giao da dong, khong the them don.']);
         }
 
-        if (in_array($order->status, [
-            WarehouseConstants::FULFILLMENT_DELIVERED,
-            WarehouseConstants::FULFILLMENT_CANCELLED,
-        ], true)) {
-            throw ValidationException::withMessages(['fulfillment_order_id' => 'Don hang khong con hop le de them vao chuyen.']);
+        if ($order->status !== WarehouseConstants::FULFILLMENT_PENDING) {
+            throw ValidationException::withMessages(['fulfillment_order_id' => 'Đơn chưa sẵn sàng xử lý.']);
         }
 
         return DB::transaction(function () use ($batch, $order) {

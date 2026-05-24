@@ -13,6 +13,11 @@ class DeliveryBatchPageController extends Controller
     public function ordersIndex()
     {
         $orders = FulfillmentOrder::query()
+            ->whereIn('status', [
+                WarehouseConstants::FULFILLMENT_PENDING,
+                WarehouseConstants::FULFILLMENT_RESERVED,
+                WarehouseConstants::FULFILLMENT_IN_DELIVERY,
+            ])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
             ->withSum('items as total_amount', 'total_amount')
@@ -52,10 +57,7 @@ class DeliveryBatchPageController extends Controller
         ]);
 
         $availableOrders = FulfillmentOrder::query()
-            ->whereNotIn('status', [
-                WarehouseConstants::FULFILLMENT_DELIVERED,
-                WarehouseConstants::FULFILLMENT_CANCELLED,
-            ])
+            ->where('status', WarehouseConstants::FULFILLMENT_PENDING)
             ->whereDoesntHave('batchOrders', fn ($query) => $query->where('delivery_batch_id', $deliveryBatch->id))
             ->withSum('items as total_quantity', 'quantity')
             ->latest()

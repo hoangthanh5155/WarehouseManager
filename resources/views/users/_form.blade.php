@@ -2,6 +2,7 @@
 @php
     $isEditing = isset($managedUser);
     $isRoleReadonly = $roleReadonly ?? false;
+    $selectedFeaturePermissions = old('feature_permissions', $assignedFeaturePermissions ?? []);
 @endphp
 
 <div class="row g-3">
@@ -74,6 +75,33 @@
             </div>
         </div>
     @endunless
+
+    @if($isEditing && ($canManageFeaturePermissions ?? false))
+        <div class="col-12">
+            <div class="border rounded-4 p-3 bg-light">
+                <div class="fw-bold text-dark mb-3">Quyền mở rộng</div>
+                <div class="row g-2">
+                    @foreach($featurePermissionLabels ?? [] as $ability => $label)
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="feature_permissions[]"
+                                    value="{{ $ability }}"
+                                    id="featurePermission{{ \Illuminate\Support\Str::studly($ability) }}"
+                                    @checked(in_array($ability, $selectedFeaturePermissions, true))
+                                >
+                                <label class="form-check-label" for="featurePermission{{ \Illuminate\Support\Str::studly($ability) }}">
+                                    {{ $label }}
+                                </label>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 @if($errors->any())

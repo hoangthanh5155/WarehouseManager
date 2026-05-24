@@ -5,7 +5,9 @@
 @section('content')
 @php
     $statusLabel = [
+        'pending_approval' => 'Chờ duyệt',
         'pending' => 'Chờ xử lý',
+        'rejected' => 'Từ chối',
         'reserved' => 'Đã giữ hàng',
         'in_delivery' => 'Đang giao',
         'delivered' => 'Đã giao',
@@ -23,6 +25,9 @@
             <div class="col-md-4"><div class="text-muted">Người mua</div><strong>{{ $order->buyer_name }}</strong></div>
             <div class="col-md-4"><div class="text-muted">Ngày tạo</div><strong>{{ optional($order->created_at)->format('d/m/Y H:i') }}</strong></div>
         </div>
+        @if($order->status === 'rejected' && $order->rejection_reason)
+            <div class="alert alert-light border">{{ $order->rejection_reason }}</div>
+        @endif
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light"><tr><th>Sản phẩm</th><th class="text-end">SL</th><th class="text-end">Đơn giá</th><th class="text-end">Tổng</th></tr></thead>

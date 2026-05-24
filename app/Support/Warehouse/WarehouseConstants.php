@@ -20,7 +20,9 @@ final class WarehouseConstants
     public const ORDER_TYPE_MANUAL = 'manual';
     public const ORDER_TYPE_GUEST = 'guest';
 
+    public const FULFILLMENT_PENDING_APPROVAL = 'pending_approval';
     public const FULFILLMENT_PENDING = 'pending';
+    public const FULFILLMENT_REJECTED = 'rejected';
     public const FULFILLMENT_RESERVED = 'reserved';
     public const FULFILLMENT_IN_DELIVERY = 'in_delivery';
     public const FULFILLMENT_DELIVERED = 'delivered';

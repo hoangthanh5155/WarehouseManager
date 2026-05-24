@@ -5,7 +5,9 @@
 @section('content')
 @php
     $statusLabel = [
+        'pending_approval' => 'Chờ duyệt',
         'pending' => 'Chờ xử lý',
+        'rejected' => 'Từ chối',
         'reserved' => 'Đã giữ hàng',
         'in_delivery' => 'Đang giao',
         'delivered' => 'Đã giao',
