@@ -1,5 +1,6 @@
 import * as bootstrap from 'bootstrap';
 import JsBarcode from 'jsbarcode';
+import { apiMessage, showToast } from './utils/ui';
 
 window.JsBarcode = JsBarcode;
 
@@ -243,7 +244,7 @@ export function initWarehouseLogic() {
 
                 if (!sn) return;
                 if (!sup || !prod || !loc) {
-                    alert('Vui lòng điền đủ nhà cung cấp, sản phẩm và vị trí kệ.');
+                    showToast('Vui lòng điền đủ nhà cung cấp, sản phẩm và vị trí kệ.', 'warning');
                     return;
                 }
 
@@ -281,7 +282,7 @@ export function initWarehouseLogic() {
                         scanLog.insertAdjacentHTML('afterbegin', `<li class="list-group-item list-group-item-danger py-2 highlight-scan"><i class="bi bi-exclamation-triangle me-1"></i>Lỗi: <b>${sn}</b> - ${res.message}</li>`);
                     }
                 })
-                .catch(() => alert('Lỗi hệ thống, vui lòng thử lại.'))
+                .catch(() => showToast('Lỗi hệ thống, vui lòng thử lại.', 'danger'))
                 .finally(() => {
                     this.readOnly = false;
                     this.value = '';
@@ -302,7 +303,7 @@ export function initWarehouseLogic() {
             const qtyInput = this.querySelector('input[name="quantity"]');
             
             if (qtyInput && parseInt(qtyInput.value) > 100) {
-                alert('Để đảm bảo hiệu năng in ấn, hệ thống chỉ hỗ trợ tạo tối đa 100 tem mỗi lần.');
+                showToast('Để đảm bảo hiệu năng in ấn, hệ thống chỉ hỗ trợ tạo tối đa 100 tem mỗi lần.', 'warning');
                 qtyInput.value = 100;
                 return;
             }
@@ -352,10 +353,10 @@ export function initWarehouseLogic() {
                     if(qtyInput) qtyInput.value = '';
 
                 } else {
-                    alert('Máy chủ báo lỗi: ' + (res.message || 'Không xác định'));
+                    showToast(apiMessage(res, 'Máy chủ báo lỗi không xác định.'), 'danger');
                 }
             })
-            .catch(() => alert('Lỗi sinh mã SN, vui lòng thử lại.'))
+            .catch(() => showToast('Lỗi sinh mã SN, vui lòng thử lại.', 'danger'))
             .finally(() => {
                 if(submitBtn) {
                     submitBtn.disabled = false;

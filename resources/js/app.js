@@ -1,9 +1,14 @@
 import { initWarehouseLogic } from './import-warehouse';
+import { apiMessage, formatMoney, showToast } from './utils/ui';
 
-// Kiểm tra xem trang hiện tại có Tab Nhập Kho không thì chạy logic luôn
+window.WmsUi = {
+    apiMessage,
+    formatMoney,
+    showToast,
+};
+
 if (document.getElementById('warehouseTab')) {
     initWarehouseLogic();
 }
 
-// Gọi file sidebar
 import './layout/sidebar';

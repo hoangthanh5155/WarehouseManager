@@ -1,3 +1,5 @@
+import { apiMessage, showToast } from '../utils/ui';
+
 document.addEventListener('DOMContentLoaded', function () {
     let mainVoucherItems = [];
     let subVouchers = [];
@@ -98,12 +100,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const qty = parseInt(document.getElementById('inputQtyMain').value) || 1;
 
             if (!productId || qty <= 0) {
-                alert('Vui lòng chọn sản phẩm hợp lệ!');
+                showToast('Vui lòng chọn sản phẩm hợp lệ!', 'warning');
                 return;
             }
 
             if (mainVoucherItems.some(i => i.product_id === productId)) {
-                alert('Sản phẩm đã có trong đơn chính!');
+                showToast('Sản phẩm đã có trong đơn chính!', 'warning');
                 return;
             }
 
@@ -230,10 +232,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 const pId = select.value;
                 const qty = parseInt(document.getElementById(`inputSubQty-${subId}`).value) || 1;
 
-                if (!pId || qty <= 0) { alert('Chọn sản phẩm hợp lệ!'); return; }
+                if (!pId || qty <= 0) { showToast('Chọn sản phẩm hợp lệ!', 'warning'); return; }
 
                 const subIdx = subVouchers.findIndex(s => s.id == subId);
-                if (subVouchers[subIdx].items.some(i => i.product_id === pId)) { alert('Sản phẩm đã có trong đơn này!'); return; }
+                if (subVouchers[subIdx].items.some(i => i.product_id === pId)) { showToast('Sản phẩm đã có trong đơn này!', 'warning'); return; }
 
                 const price = parseFloat(getCustomerType() === 'agency' ? opt.getAttribute('data-agency') : opt.getAttribute('data-retail')) || 0;
 
@@ -329,13 +331,13 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!verifyListArea) return;
 
             if (mainVoucherItems.length === 0) {
-                alert('Vui lòng thêm sản phẩm vào đơn chính!');
+                showToast('Vui lòng thêm sản phẩm vào đơn chính!', 'warning');
                 return;
             }
 
             const buyerName = document.getElementById('buyerName').value.trim();
             if (!buyerName) {
-                alert('Vui lòng nhập họ tên người mua hàng!');
+                showToast('Vui lòng nhập họ tên người mua hàng!', 'warning');
                 return;
             }
 
@@ -433,7 +435,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
 
             if (!isValid) {
-                alert('Vui lòng quét hoặc nhập đầy đủ mã SN!');
+                showToast('Vui lòng quét hoặc nhập đầy đủ mã SN!', 'warning');
                 return;
             }
 
@@ -473,18 +475,18 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(res => {
                 if (res.success) {
                     verifySnModal.hide();
-                    alert('Lưu đơn xuất kho thành công! Hệ thống chuyển hướng in ngay.');
+                    showToast('Lưu đơn xuất kho thành công. Hệ thống sẽ chuyển hướng in ngay.', 'success');
                     const printUrl = res.data?.print_url || `/export/print/${res.data?.export_voucher_id}`;
                     window.location.href = printUrl;
                 } else {
-                    alert('Lỗi: ' + res.message);
+                    showToast(apiMessage(res), 'danger');
                     btnConfirmAndSave.disabled = false;
                     btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
                 }
             })
             .catch(err => {
                 console.error('Chi tiết lỗi Ajax:', err);
-                alert('Có lỗi xảy ra: ' + err.message);
+                showToast('Có lỗi xảy ra: ' + err.message, 'danger');
                 btnConfirmAndSave.disabled = false;
                 btnConfirmAndSave.innerHTML = `<i class="bi bi-check-circle me-2"></i>Lưu đơn và in ngay`;
             });
