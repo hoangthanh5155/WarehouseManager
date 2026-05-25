@@ -180,8 +180,7 @@
                 </div>
                 <div class="input-group mb-3">
                     <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
-                    <input type="text" id="serialScanInput" class="form-control form-control-lg" placeholder="Quét hoặc nhập SN" autocomplete="off" autofocus>
-                    <button type="button" id="btnAddSerial" class="btn btn-primary fw-bold">Thêm</button>
+                    <input type="text" id="serialScanInput" class="form-control form-control-lg" placeholder="Quét SN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus>
                 </div>
 
                 <div class="table-responsive">

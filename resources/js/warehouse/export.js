@@ -280,7 +280,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (scannedItems.some((item) => item.serial_number === serial)) {
             showToast('SN đã có trong đơn.', 'warning');
-            serialScanInput.select();
+            serialScanInput.value = '';
+            serialScanInput.focus();
             return;
         }
 
@@ -288,7 +289,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const serialData = await checkSerial(serial);
 
             if (getExportType() === 'system' && !canAddSystemSerial(serialData)) {
-                serialScanInput.select();
+                serialScanInput.value = '';
+                serialScanInput.focus();
                 return;
             }
 
@@ -297,13 +299,14 @@ document.addEventListener('DOMContentLoaded', function () {
             renderPreparedItems();
         } catch (error) {
             showToast(error.message, 'danger');
-            serialScanInput.select();
+            serialScanInput.value = '';
+        } finally {
+            serialScanInput.focus();
         }
     }
 
-    document.getElementById('btnAddSerial')?.addEventListener('click', addSerialFromInput);
     serialScanInput?.addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' || event.key === 'Tab') {
             event.preventDefault();
             addSerialFromInput();
         }
@@ -316,6 +319,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (getExportType() === 'normal') return true;
+        /*
         if (false && document.getElementById('buyerName')) {
             if (!document.getElementById('buyerName').value.trim()) {
                 showToast('Vui lòng nhập người mua.', 'warning');
@@ -323,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return true;
         }
+        */
 
         const order = selectedSystemOrder();
         if (!order) {

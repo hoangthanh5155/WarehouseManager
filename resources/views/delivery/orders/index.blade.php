@@ -141,10 +141,10 @@
 
                         <label class="form-label fw-semibold">Quét SN từ chuyến</label>
                         <div class="input-group mb-2">
-                            <input type="text" class="form-control" data-scan-input placeholder="Quét hoặc nhập SN">
-                            <button class="btn btn-outline-primary" type="button" data-add-scan>Thêm</button>
+                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" class="form-control form-control-lg" data-scan-input placeholder="Quét SN" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
                         </div>
-                        <textarea name="serials" rows="5" class="form-control" required placeholder="Quét hoặc dán SN, mỗi dòng một SN" data-serial-lines></textarea>
+                        <input type="hidden" name="serials" data-serial-lines>
                         <div class="small mt-2" data-scan-message></div>
 
                         <div class="mt-3">
@@ -193,7 +193,7 @@ document.querySelectorAll('.delivery-confirm-modal').forEach((modal) => {
     const serialMap = new Map(batchSerials.map((row) => [String(row.serial_number), row]));
     const scanned = [];
     const input = modal.querySelector('[data-scan-input]');
-    const textarea = modal.querySelector('[data-serial-lines]');
+    const serialLines = modal.querySelector('[data-serial-lines]');
     const list = modal.querySelector('[data-scanned-list]');
     const message = modal.querySelector('[data-scan-message]');
     const submit = modal.querySelector('[data-submit-delivery]');
@@ -224,7 +224,7 @@ document.querySelectorAll('.delivery-confirm-modal').forEach((modal) => {
             if (passed !== Number(item.quantity)) complete = false;
         });
 
-        textarea.value = scanned.join('\n');
+        serialLines.value = scanned.join('\n');
         list.innerHTML = scanned.length
             ? scanned.map((serial) => `<span class="badge text-bg-light border">${serial}</span>`).join('')
             : '<span class="text-muted small">Chưa có SN.</span>';
@@ -262,23 +262,24 @@ document.querySelectorAll('.delivery-confirm-modal').forEach((modal) => {
         render();
     }
 
-    modal.querySelector('[data-add-scan]')?.addEventListener('click', () => {
+    function processInput() {
         addSerial(input.value);
         input.value = '';
         input.focus();
-    });
+    }
 
     input?.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' || event.key === 'Tab') {
             event.preventDefault();
-            modal.querySelector('[data-add-scan]')?.click();
+            processInput();
         }
     });
 
-    textarea?.addEventListener('input', () => {
-        scanned.splice(0, scanned.length);
-        textarea.value.split(/\r?\n/).forEach(addSerial);
-        render();
+    modal.querySelector('form')?.addEventListener('submit', (event) => {
+        if (document.activeElement === input) {
+            event.preventDefault();
+            processInput();
+        }
     });
 
     render();
