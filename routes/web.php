@@ -89,6 +89,7 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::get('/smart-suggestion', [ProductController::class, 'smartSuggestion'])->middleware('permission:import_stock')->name('products.suggestion');
 
     Route::get('/export', [ExportController::class, 'index'])->middleware('permission:export_stock')->name('export.index');
+    Route::get('/export/orders/{fulfillmentOrder}/print', [DeliveryBatchPageController::class, 'print'])->middleware('permission:export_stock')->name('export.orders.print');
     Route::patch('/export/vouchers/{voucher}/metadata', [ExportController::class, 'updateMetadata'])->middleware('permission:edit_export_metadata')->name('export.metadata.update');
     Route::get('/export/print/{id}', [ExportController::class, 'print'])->middleware('permission:export_stock')->name('export.print');
 
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
 
     Route::prefix('api/export')->group(function () {
         Route::get('/check-sn/{serial_number}', [ExportController::class, 'checkSerial'])->middleware('permission:export_stock')->name('export.checkSn');
+        Route::post('/orders', [DeliveryBatchController::class, 'storeOrder'])->middleware('permission:export_stock')->name('export.orders.store');
         Route::post('/submit', [ExportController::class, 'store'])->middleware('permission:export_stock')->name('export.submit');
     });
 
@@ -119,6 +121,8 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
         Route::post('/orders', [DeliveryBatchController::class, 'storeOrder'])->name('delivery.orders.store');
         Route::post('/', [DeliveryBatchController::class, 'storeBatch'])->name('delivery.batches.store');
         Route::post('/{deliveryBatch}/orders', [DeliveryBatchController::class, 'addOrder'])->name('delivery.batches.orders.store');
+        Route::delete('/orders/{deliveryBatchOrder}', [DeliveryBatchController::class, 'removeOrder'])->name('delivery.batches.orders.remove');
+        Route::patch('/{deliveryBatch}/ready', [DeliveryBatchController::class, 'markReady'])->name('delivery.batches.ready');
         Route::post('/{deliveryBatch}/serials/reserve', [DeliveryBatchController::class, 'reserveSerials'])->name('delivery.batches.serials.reserve');
         Route::post('/orders/{deliveryBatchOrder}/serials/assign', [DeliveryBatchController::class, 'assignOrderSerials'])->name('delivery.orders.serials.assign');
         Route::post('/orders/{deliveryBatchOrder}/deliver', [DeliveryBatchController::class, 'deliverOrder'])->name('delivery.orders.deliver');

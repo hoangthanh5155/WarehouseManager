@@ -68,11 +68,22 @@ class ExportController extends Controller
                 ])->values()->all(),
             ])->values()->all();
 
-            $recentVouchers = ExportVoucher::orderByDesc('exported_at')
+            $productCatalogsPayload = $productCatalogs->map(fn ($catalog) => [
+                'id' => $catalog->id,
+                'product_name' => $catalog->product_name,
+                'retail_price' => (float) ($catalog->retail_price ?? 0),
+                'agency_price' => (float) ($catalog->agency_price ?? 0),
+                'available_quantity' => (int) ($catalog->products_count ?? 0),
+            ])->values()->all();
+
+            $recentOrders = FulfillmentOrder::query()
+                ->with('items.productCatalog')
+                ->withSum('items as total_amount', 'total_amount')
                 ->limit(8)
+                ->latest()
                 ->get();
 
-            return view('exports.create', compact('customers', 'productCatalogs', 'recentVouchers', 'systemOrders', 'systemOrdersPayload'));
+            return view('exports.create', compact('customers', 'productCatalogs', 'productCatalogsPayload', 'recentOrders', 'systemOrders', 'systemOrdersPayload'));
         } catch (Throwable $e) {
             return response()->json([
                 'success' => false,

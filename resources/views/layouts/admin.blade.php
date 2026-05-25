@@ -209,13 +209,12 @@
 
                 @if($canManageMasterData)
                     <li class="nav-item">
-                        <a href="#productSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') || request()->routeIs('product-catalogs.*') ? 'active' : '' }}" data-sidebar-target="#productSubmenu" role="button" aria-expanded="false" aria-controls="productSubmenu">
+                        <a href="#productSubmenu" class="nav-link collapsed sidebar-collapse-toggle {{ request()->routeIs('products.index') || request()->routeIs('products.showCatalog') ? 'active' : '' }}" data-sidebar-target="#productSubmenu" role="button" aria-expanded="false" aria-controls="productSubmenu">
                             <div><i class="bi bi-box-seam-fill menu-icon"></i>Quản lý sản phẩm</div>
                             <i class="bi bi-chevron-down arrow-icon"></i>
                         </a>
                         <ul class="collapse submenu" id="productSubmenu">
                             <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Danh sách sản phẩm</a></li>
-                            <li><a href="{{ route('product-catalogs.index') }}" class="nav-link {{ request()->routeIs('product-catalogs.*') ? 'active' : '' }}">Danh mục sản phẩm</a></li>
                             {{-- TODO: Hiển thị "Bảng giá" khi có route riêng. --}}
                         </ul>
                     </li>
@@ -224,7 +223,7 @@
                 @if($canImportStock || $canExportStock || $canTraceSerial || $canManageMasterData)
                     @php
                         $warehouseInfoActive = request()->routeIs('product-catalogs.*') || request()->routeIs('suppliers.*') || request()->routeIs('locations.*');
-                        $warehouseActive = request()->routeIs('products.import') || request()->routeIs('export.*') || request()->routeIs('serial.trace.*') || $warehouseInfoActive;
+                        $warehouseActive = request()->routeIs('products.import') || request()->routeIs('serial.trace.*') || $warehouseInfoActive;
                     @endphp
                     <li class="nav-item">
                         <a href="#warehouseSubmenu" class="nav-link sidebar-collapse-toggle {{ $warehouseActive ? 'active' : '' }} {{ $warehouseActive ? '' : 'collapsed' }}" data-sidebar-target="#warehouseSubmenu" role="button" aria-expanded="{{ $warehouseActive ? 'true' : 'false' }}" aria-controls="warehouseSubmenu">
@@ -234,9 +233,6 @@
                         <ul class="collapse submenu {{ $warehouseActive ? 'show' : '' }}" id="warehouseSubmenu">
                             @if($canImportStock)
                                 <li><a href="{{ route('products.import') }}" class="nav-link {{ request()->routeIs('products.import') ? 'active' : '' }}">Nhập kho</a></li>
-                            @endif
-                            @if($canExportStock)
-                                <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Xuất kho</a></li>
                             @endif
                             @if($canViewWarehouseReports || $canImportStock || $canExportStock)
                                 <li><a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.index') ? 'active' : '' }}">Tồn kho</a></li>
@@ -261,16 +257,18 @@
                     </li>
                 @endif
 
-                @if($canViewDelivery || $canManageDeliveryVehicles)
-                    @php($deliveryActive = request()->routeIs('delivery.orders.*') || request()->routeIs('delivery.batches.*') || request()->routeIs('delivery.vehicles.*'))
+                @if($canExportStock || $canViewDelivery || $canManageDeliveryVehicles)
+                    @php($deliveryActive = request()->routeIs('export.*') || request()->routeIs('delivery.batches.*') || request()->routeIs('delivery.vehicles.*'))
                     <li class="nav-item">
                         <a href="#deliverySubmenu" class="nav-link sidebar-collapse-toggle {{ $deliveryActive ? 'active' : '' }} {{ $deliveryActive ? '' : 'collapsed' }}" data-sidebar-target="#deliverySubmenu" role="button" aria-expanded="{{ $deliveryActive ? 'true' : 'false' }}" aria-controls="deliverySubmenu">
                             <div><i class="bi bi-truck menu-icon"></i>Quản lý giao hàng</div>
                             <i class="bi bi-chevron-down arrow-icon"></i>
                         </a>
                         <ul class="collapse submenu {{ $deliveryActive ? 'show' : '' }}" id="deliverySubmenu">
+                            @if($canExportStock)
+                                <li><a href="{{ route('export.index') }}" class="nav-link {{ request()->routeIs('export.*') ? 'active' : '' }}">Tạo đơn xuất hàng</a></li>
+                            @endif
                             @if($canViewDelivery)
-                                <li><a href="{{ route('delivery.orders.index') }}" class="nav-link {{ request()->routeIs('delivery.orders.*') ? 'active' : '' }}">Đơn giao</a></li>
                                 <li><a href="{{ route('delivery.batches.index') }}" class="nav-link {{ request()->routeIs('delivery.batches.*') ? 'active' : '' }}">Chuyến giao</a></li>
                             @endif
                             @if($canManageDeliveryVehicles)

@@ -43,8 +43,13 @@ class DeliveryBatchController extends Controller
             $payload = $validator->validated() + $request->all();
             $payload['status'] = WarehouseConstants::FULFILLMENT_PENDING;
             $order = $service->create($payload, $request->user()?->id);
+            $printRoute = $request->routeIs('export.orders.store') ? 'export.orders.print' : 'delivery.orders.print';
 
-            return $this->successResponse('Da tao don can giao.', $order);
+            return $this->successResponse('Da tao don can giao.', [
+                'order' => $order,
+                'print_url' => route($printRoute, $order),
+                'public_url' => $order->public_token ? route('delivery.orders.public', $order->public_token) : null,
+            ]);
         } catch (ValidationException $e) {
             return $this->errorResponse('Du lieu don giao khong hop le.', $e->errors(), 422);
         } catch (Throwable $e) {
@@ -100,6 +105,36 @@ class DeliveryBatchController extends Controller
             report($e);
 
             return $this->errorResponse('Loi them don vao chuyen: ' . $e->getMessage(), [], 500);
+        }
+    }
+
+    public function removeOrder(DeliveryBatchOrder $deliveryBatchOrder, DeliveryBatchService $service)
+    {
+        try {
+            $service->removeOrder($deliveryBatchOrder);
+
+            return $this->successResponse('Da huy don khoi chuyen giao.');
+        } catch (ValidationException $e) {
+            return $this->errorResponse('Khong the huy don khoi chuyen.', $e->errors(), 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->errorResponse('Loi huy don khoi chuyen: ' . $e->getMessage(), [], 500);
+        }
+    }
+
+    public function markReady(DeliveryBatch $deliveryBatch, DeliveryBatchService $service)
+    {
+        try {
+            $batch = $service->markReady($deliveryBatch);
+
+            return $this->successResponse('Da danh dau chuyen san sang giao.', $batch);
+        } catch (ValidationException $e) {
+            return $this->errorResponse('Khong the danh dau san sang.', $e->errors(), 422);
+        } catch (Throwable $e) {
+            report($e);
+
+            return $this->errorResponse('Loi danh dau san sang: ' . $e->getMessage(), [], 500);
         }
     }
 

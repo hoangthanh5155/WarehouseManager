@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindApiForms();
     bindCreateBatchButtons();
     bindOrderItems();
+    bindDeliverySerialScanner();
 });
 
 function bindApiForms() {
@@ -133,6 +134,15 @@ async function submitApiForm(form) {
 }
 
 function buildPayload(form) {
+    if (form.dataset.serialScanForm) {
+        const input = form.querySelector('[data-delivery-serial-scan]');
+        const serial = String(input?.value || '').trim();
+
+        return {
+            [form.dataset.serialScanForm]: serial ? [serial] : [],
+        };
+    }
+
     if (form.dataset.serialLinesForm) {
         const textarea = form.querySelector(`[name="${form.dataset.serialLinesForm}"]`);
         return {
@@ -150,6 +160,32 @@ function buildPayload(form) {
     }
 
     return formDataToObject(formData);
+}
+
+function bindDeliverySerialScanner() {
+    document.querySelectorAll('[data-delivery-serial-scan]').forEach((input) => {
+        const form = input.closest('form');
+        if (!form) return;
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== 'Tab') return;
+
+            event.preventDefault();
+            if (!input.value.trim()) {
+                input.focus();
+                return;
+            }
+
+            form.requestSubmit();
+        });
+
+        form.addEventListener('submit', () => {
+            window.setTimeout(() => {
+                input.value = '';
+                input.focus();
+            }, 0);
+        });
+    });
 }
 
 function formDataToObject(formData) {

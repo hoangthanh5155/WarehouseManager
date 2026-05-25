@@ -158,6 +158,39 @@ class DeliveryBatchService
         return $batch->refresh();
     }
 
+    public function markReady(DeliveryBatch $batch): DeliveryBatch
+    {
+        if (!in_array($batch->status, [
+            WarehouseConstants::DELIVERY_BATCH_DRAFT,
+            WarehouseConstants::DELIVERY_BATCH_PICKING,
+            WarehouseConstants::DELIVERY_BATCH_READY,
+        ], true)) {
+            throw ValidationException::withMessages(['delivery_batch_id' => 'Chi chuyen dang soan moi co the danh dau san sang.']);
+        }
+
+        $batch->update(['status' => WarehouseConstants::DELIVERY_BATCH_READY]);
+
+        return $batch->refresh();
+    }
+
+    public function removeOrder(DeliveryBatchOrder $batchOrder): void
+    {
+        DB::transaction(function () use ($batchOrder) {
+            $batchOrder = DeliveryBatchOrder::query()
+                ->with('fulfillmentOrder')
+                ->whereKey($batchOrder->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($batchOrder->status === WarehouseConstants::DELIVERY_ORDER_DELIVERED) {
+                throw ValidationException::withMessages(['delivery_batch_order_id' => 'Khong the huy don da giao thanh cong.']);
+            }
+
+            $batchOrder->fulfillmentOrder?->update(['status' => WarehouseConstants::FULFILLMENT_READY_TO_DELIVER]);
+            $batchOrder->delete();
+        });
+    }
+
     private function generateBatchCode(): string
     {
         do {
