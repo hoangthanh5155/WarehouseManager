@@ -39,6 +39,8 @@
     </div>
 
     <div class="mt-2 small"><span class="text-muted">Chuyến giao:</span> <strong>{{ $batch?->batch_code ?: '-' }}</strong></div>
+    <div class="mt-1 small"><span class="text-muted">Nhân viên giao:</span> <strong>{{ $batch?->deliveryUser?->displayName() ?: '-' }}</strong></div>
+    <div class="mt-1 small"><span class="text-muted">Phương tiện:</span> <strong>{{ $batch?->vehicle?->displayName() ?: '-' }}</strong></div>
 
     <div class="d-grid gap-2 mt-3">
         <a href="{{ route('delivery.orders.print', $order) }}" class="btn btn-sm btn-outline-primary">

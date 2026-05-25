@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\DeliveryBatch;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -31,6 +32,9 @@ class User extends Authenticatable
     public const ABILITY_VIEW_WAREHOUSE_HISTORY = 'view_warehouse_history';
     public const ABILITY_TRACE_SERIAL = 'trace_serial';
     public const ABILITY_MANAGE_CASHFLOW = 'manage_cashflow';
+    public const ABILITY_MANAGE_DELIVERY_VEHICLES = 'manage_delivery_vehicles';
+    public const ABILITY_MANAGE_DELIVERY_BATCHES = 'manage_delivery_batches';
+    public const ABILITY_VIEW_ALL_DELIVERY_BATCHES = 'view_all_delivery_batches';
 
     protected $fillable = [
         'name',
@@ -52,12 +56,12 @@ class User extends Authenticatable
     public static function roleLabels(): array
     {
         return [
-            self::ROLE_ADMIN => 'Chủ kho',
-            self::ROLE_WAREHOUSE_MANAGER => 'Quản lý kho',
-            self::ROLE_WAREHOUSE_STAFF => 'Nhân viên kho',
-            self::ROLE_SALES_STAFF => 'Nhân viên bán hàng',
-            self::ROLE_ACCOUNTANT => 'Kế toán',
-            self::ROLE_VIEWER => 'Chỉ xem',
+            self::ROLE_ADMIN => 'Chá»§ kho',
+            self::ROLE_WAREHOUSE_MANAGER => 'Quáº£n lÃ½ kho',
+            self::ROLE_WAREHOUSE_STAFF => 'NhÃ¢n viÃªn kho',
+            self::ROLE_SALES_STAFF => 'NhÃ¢n viÃªn bÃ¡n hÃ ng',
+            self::ROLE_ACCOUNTANT => 'Káº¿ toÃ¡n',
+            self::ROLE_VIEWER => 'Chá»‰ xem',
         ];
     }
 
@@ -76,14 +80,17 @@ class User extends Authenticatable
     public static function featurePermissionLabels(): array
     {
         return [
-            self::ABILITY_CREATE_SALES_ORDERS => 'Tạo đơn bán hàng',
-            self::ABILITY_APPROVE_CUSTOMER_ORDERS => 'Duyệt đơn khách hàng',
-            self::ABILITY_VIEW_FINANCIAL_REPORTS => 'Xem báo cáo tài chính',
-            self::ABILITY_VIEW_COST_PRICES => 'Xem giá vốn/lợi nhuận',
-            self::ABILITY_VIEW_WAREHOUSE_REPORTS => 'Xem nhập xuất tồn',
-            self::ABILITY_VIEW_WAREHOUSE_HISTORY => 'Xem lịch sử kho',
-            self::ABILITY_TRACE_SERIAL => 'Truy vết Serial',
-            self::ABILITY_MANAGE_CASHFLOW => 'Quản lý thu chi',
+            self::ABILITY_CREATE_SALES_ORDERS => 'Táº¡o Ä‘Æ¡n bÃ¡n hÃ ng',
+            self::ABILITY_APPROVE_CUSTOMER_ORDERS => 'Duyá»‡t Ä‘Æ¡n khÃ¡ch hÃ ng',
+            self::ABILITY_VIEW_FINANCIAL_REPORTS => 'Xem bÃ¡o cÃ¡o tÃ i chÃ­nh',
+            self::ABILITY_VIEW_COST_PRICES => 'Xem giÃ¡ vá»‘n/lá»£i nhuáº­n',
+            self::ABILITY_VIEW_WAREHOUSE_REPORTS => 'Xem nháº­p xuáº¥t tá»“n',
+            self::ABILITY_VIEW_WAREHOUSE_HISTORY => 'Xem lá»‹ch sá»­ kho',
+            self::ABILITY_TRACE_SERIAL => 'Truy váº¿t Serial',
+            self::ABILITY_MANAGE_CASHFLOW => 'Quáº£n lÃ½ thu chi',
+            self::ABILITY_MANAGE_DELIVERY_VEHICLES => 'Quản lý phương tiện giao hàng',
+            self::ABILITY_MANAGE_DELIVERY_BATCHES => 'Quản lý chuyến giao',
+            self::ABILITY_VIEW_ALL_DELIVERY_BATCHES => 'Xem toàn bộ chuyến giao',
         ];
     }
 
@@ -114,6 +121,8 @@ class User extends Authenticatable
     {
         return in_array($this->role, [
             self::ROLE_WAREHOUSE_MANAGER,
+            self::ROLE_WAREHOUSE_STAFF,
+            self::ROLE_SALES_STAFF,
             self::ROLE_ACCOUNTANT,
         ], true);
     }
@@ -254,6 +263,34 @@ class User extends Authenticatable
             || $this->hasFeaturePermission(self::ABILITY_MANAGE_CASHFLOW);
     }
 
+    public function canManageDeliveryVehicles(): bool
+    {
+        return $this->isAdmin()
+            || $this->hasFeaturePermission(self::ABILITY_MANAGE_DELIVERY_VEHICLES);
+    }
+
+    public function canManageDeliveryBatches(): bool
+    {
+        return $this->isAdmin()
+            || $this->isWarehouseManager()
+            || $this->hasFeaturePermission(self::ABILITY_MANAGE_DELIVERY_BATCHES);
+    }
+
+    public function canViewAllDeliveryBatches(): bool
+    {
+        return $this->isAdmin()
+            || $this->canManageDeliveryBatches()
+            || $this->hasFeaturePermission(self::ABILITY_VIEW_ALL_DELIVERY_BATCHES);
+    }
+
+    public function canViewDeliveryBatch(DeliveryBatch $batch): bool
+    {
+        return $this->isAdmin()
+            || $this->canViewAllDeliveryBatches()
+            || (int) $batch->delivery_user_id === (int) $this->id
+            || (int) ($batch->driver_user_id ?? 0) === (int) $this->id;
+    }
+
     public function manageableRoles(): array
     {
         if ($this->isAdmin()) {
@@ -308,3 +345,4 @@ class User extends Authenticatable
         ];
     }
 }
+

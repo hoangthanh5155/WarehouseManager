@@ -7,6 +7,7 @@ use App\Http\Controllers\CustomerPortalUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryBatchController;
 use App\Http\Controllers\DeliveryBatchPageController;
+use App\Http\Controllers\DeliveryVehicleController;
 use App\Http\Controllers\ExportController;
 use App\Http\Controllers\InternalUserController;
 use App\Http\Controllers\LocationController;
@@ -91,21 +92,29 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::patch('/export/vouchers/{voucher}/metadata', [ExportController::class, 'updateMetadata'])->middleware('permission:edit_export_metadata')->name('export.metadata.update');
     Route::get('/export/print/{id}', [ExportController::class, 'print'])->middleware('permission:export_stock')->name('export.print');
 
-    Route::middleware('permission:export_stock')->group(function () {
+    Route::middleware('permission:delivery_access')->group(function () {
         Route::get('/delivery/orders', [DeliveryBatchPageController::class, 'ordersIndex'])->name('delivery.orders.index');
         Route::get('/delivery/orders/{fulfillmentOrder}/print', [DeliveryBatchPageController::class, 'print'])->name('delivery.orders.print');
         Route::post('/delivery/orders/{fulfillmentOrder}/deliver', [DeliveryBatchPageController::class, 'deliver'])->name('delivery.orders.confirm_deliver');
         Route::post('/delivery/orders/{fulfillmentOrder}/fail', [DeliveryBatchPageController::class, 'fail'])->name('delivery.orders.confirm_fail');
         Route::get('/delivery/batches', [DeliveryBatchPageController::class, 'batchesIndex'])->name('delivery.batches.index');
         Route::get('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'batchesShow'])->name('delivery.batches.show');
+        Route::patch('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'updateBatch'])->middleware('permission:manage_delivery_batches')->name('delivery.batches.update');
+        Route::delete('/delivery/batches/{deliveryBatch}', [DeliveryBatchPageController::class, 'cancelBatch'])->middleware('permission:manage_delivery_batches')->name('delivery.batches.cancel');
     });
+
+    Route::resource('delivery/vehicles', DeliveryVehicleController::class)
+        ->parameters(['vehicles' => 'deliveryVehicle'])
+        ->except(['show'])
+        ->names('delivery.vehicles')
+        ->middleware('permission:manage_delivery_vehicles');
 
     Route::prefix('api/export')->group(function () {
         Route::get('/check-sn/{serial_number}', [ExportController::class, 'checkSerial'])->middleware('permission:export_stock')->name('export.checkSn');
         Route::post('/submit', [ExportController::class, 'store'])->middleware('permission:export_stock')->name('export.submit');
     });
 
-    Route::prefix('api/delivery-batches')->middleware('permission:export_stock')->group(function () {
+    Route::prefix('api/delivery-batches')->middleware('permission:manage_delivery_batches')->group(function () {
         // Deprecated for UI: Delivery screens must not create fulfillment orders directly.
         Route::post('/orders', [DeliveryBatchController::class, 'storeOrder'])->name('delivery.orders.store');
         Route::post('/', [DeliveryBatchController::class, 'storeBatch'])->name('delivery.batches.store');

@@ -28,6 +28,8 @@
         </div>
     </td>
     <td>{{ $batch?->batch_code ?: '-' }}</td>
+    <td>{{ $batch?->deliveryUser?->displayName() ?: '-' }}</td>
+    <td>{{ $batch?->vehicle?->displayName() ?: '-' }}</td>
     <td class="text-end">{{ number_format($order->total_amount ?? 0) }} đ</td>
     <td class="text-end">
         <div class="d-flex flex-wrap justify-content-end gap-1">

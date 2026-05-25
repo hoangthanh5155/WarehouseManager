@@ -41,10 +41,29 @@ return new class extends Migration
             $table->index(['fulfillment_order_id', 'product_catalog_id'], 'fo_items_order_catalog_idx');
         });
 
+        Schema::create('delivery_vehicles', function (Blueprint $table) {
+            $table->id();
+            $table->string('vehicle_type');
+            $table->string('plate_number')->nullable()->unique();
+            $table->decimal('load_capacity', 12, 2)->nullable();
+            $table->string('status')->default('active');
+            $table->text('note')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+
+            $table->index(['vehicle_type', 'status']);
+        });
+
         Schema::create('delivery_batches', function (Blueprint $table) {
             $table->id();
             $table->string('batch_code')->unique();
             $table->string('status')->default('draft');
+            $table->foreignId('delivery_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('driver_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignId('vehicle_id')->nullable()->constrained('delivery_vehicles')->nullOnDelete();
+            $table->json('vehicle_snapshot')->nullable();
+            $table->text('delivery_note')->nullable();
             $table->text('note')->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('started_at')->nullable();
@@ -99,6 +118,7 @@ return new class extends Migration
         Schema::dropIfExists('delivery_batch_serials');
         Schema::dropIfExists('delivery_batch_orders');
         Schema::dropIfExists('delivery_batches');
+        Schema::dropIfExists('delivery_vehicles');
         Schema::dropIfExists('fulfillment_order_items');
         Schema::dropIfExists('fulfillment_orders');
     }

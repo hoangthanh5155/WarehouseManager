@@ -4,6 +4,8 @@ namespace App\Services\Warehouse;
 
 use App\Models\DeliveryBatch;
 use App\Models\DeliveryBatchOrder;
+use App\Models\DeliveryBatchSerial;
+use App\Models\DeliveryVehicle;
 use App\Models\FulfillmentOrder;
 use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Support\Facades\DB;
@@ -16,9 +18,83 @@ class DeliveryBatchService
         return DeliveryBatch::query()->create([
             'batch_code' => $payload['batch_code'] ?? $this->generateBatchCode(),
             'status' => WarehouseConstants::DELIVERY_BATCH_DRAFT,
+            'delivery_user_id' => $payload['delivery_user_id'] ?? null,
+            'driver_user_id' => $payload['delivery_user_id'] ?? null,
+            'vehicle_id' => $payload['vehicle_id'] ?? null,
+            'vehicle_snapshot' => $this->vehicleSnapshot($payload['vehicle_id'] ?? null),
+            'delivery_note' => $payload['delivery_note'] ?? null,
             'note' => $payload['note'] ?? null,
             'created_by' => $userId,
         ]);
+    }
+
+    public function update(DeliveryBatch $batch, array $payload): DeliveryBatch
+    {
+        if (in_array($batch->status, [
+            WarehouseConstants::DELIVERY_BATCH_COMPLETED,
+            WarehouseConstants::DELIVERY_BATCH_CANCELLED,
+        ], true)) {
+            throw ValidationException::withMessages(['delivery_batch_id' => 'Chuyen giao da dong, khong the sua.']);
+        }
+
+        $batch->update([
+            'delivery_user_id' => $payload['delivery_user_id'] ?? null,
+            'driver_user_id' => $payload['delivery_user_id'] ?? null,
+            'vehicle_id' => $payload['vehicle_id'] ?? null,
+            'vehicle_snapshot' => $this->vehicleSnapshot($payload['vehicle_id'] ?? null),
+            'delivery_note' => $payload['delivery_note'] ?? null,
+            'note' => $payload['note'] ?? $batch->note,
+        ]);
+
+        return $batch->refresh();
+    }
+
+    public function cancel(DeliveryBatch $batch, ?int $userId = null): void
+    {
+        DB::transaction(function () use ($batch, $userId) {
+            $batch = DeliveryBatch::query()->whereKey($batch->id)->lockForUpdate()->firstOrFail();
+
+            if ($batch->status === WarehouseConstants::DELIVERY_BATCH_COMPLETED) {
+                throw ValidationException::withMessages(['delivery_batch_id' => 'Khong the huy chuyen da hoan tat.']);
+            }
+
+            $hasDeliveredOrder = $batch->batchOrders()
+                ->where('status', WarehouseConstants::DELIVERY_ORDER_DELIVERED)
+                ->exists();
+            if ($hasDeliveredOrder) {
+                throw ValidationException::withMessages(['delivery_batch_id' => 'Khong the huy chuyen da co don giao thanh cong.']);
+            }
+
+            $orderIds = $batch->batchOrders()->pluck('fulfillment_order_id');
+            FulfillmentOrder::query()
+                ->whereIn('id', $orderIds)
+                ->whereNotIn('status', [
+                    WarehouseConstants::FULFILLMENT_DELIVERED,
+                    WarehouseConstants::FULFILLMENT_FAILED,
+                    WarehouseConstants::FULFILLMENT_CANCELLED,
+                ])
+                ->update(['status' => WarehouseConstants::FULFILLMENT_READY_TO_DELIVER]);
+
+            DeliveryBatchSerial::query()
+                ->where('delivery_batch_id', $batch->id)
+                ->whereIn('status', [
+                    WarehouseConstants::DELIVERY_SERIAL_RESERVED,
+                    WarehouseConstants::DELIVERY_SERIAL_ASSIGNED,
+                ])
+                ->lockForUpdate()
+                ->update([
+                    'status' => WarehouseConstants::DELIVERY_SERIAL_RELEASED,
+                    'active_product_id' => null,
+                    'released_at' => now(),
+                    'updated_by' => $userId,
+                ]);
+
+            $batch->batchOrders()->delete();
+            $batch->update([
+                'status' => WarehouseConstants::DELIVERY_BATCH_CANCELLED,
+                'completed_at' => null,
+            ]);
+        });
     }
 
     public function addOrder(DeliveryBatch $batch, FulfillmentOrder $order): DeliveryBatchOrder
@@ -89,5 +165,24 @@ class DeliveryBatchService
         } while (DeliveryBatch::query()->where('batch_code', $code)->exists());
 
         return $code;
+    }
+
+    private function vehicleSnapshot(mixed $vehicleId): ?array
+    {
+        if (!$vehicleId) {
+            return null;
+        }
+
+        $vehicle = DeliveryVehicle::query()->find($vehicleId);
+        if (!$vehicle) {
+            return null;
+        }
+
+        return [
+            'id' => $vehicle->id,
+            'vehicle_type' => $vehicle->vehicle_type,
+            'plate_number' => $vehicle->plate_number,
+            'load_capacity' => $vehicle->load_capacity,
+        ];
     }
 }

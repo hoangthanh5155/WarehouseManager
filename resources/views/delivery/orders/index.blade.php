@@ -46,6 +46,8 @@
                             <th>Trạng thái</th>
                             <th>Sản phẩm cần giao</th>
                             <th>Chuyến giao</th>
+                            <th>Nhân viên giao</th>
+                            <th>Phương tiện</th>
                             <th class="text-end">Tổng tiền</th>
                             <th class="text-end">Thao tác</th>
                         </tr>
@@ -54,7 +56,7 @@
                         @forelse($orders as $order)
                             @include('delivery.orders.partials.order-row', ['order' => $order])
                         @empty
-                            <tr><td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng.</td></tr>
+                            <tr><td colspan="10" class="text-center text-muted py-4">Chưa có đơn hàng.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

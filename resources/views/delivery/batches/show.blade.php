@@ -39,6 +39,12 @@
             <i class="bi bi-arrow-left me-1"></i>Danh sách chuyến
         </a>
     </div>
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger border-0 shadow-sm">{{ $errors->first() }}</div>
+    @endif
 
     <div class="row g-3">
         <div class="col-lg-4">
@@ -58,6 +64,20 @@
                             <span class="text-muted">Ngày tạo</span>
                             <strong>{{ optional($batch->created_at)->format('d/m/Y H:i') }}</strong>
                         </div>
+                        <div class="d-flex justify-content-between gap-3">
+                            <span class="text-muted">Nhân viên giao</span>
+                            <strong>{{ $batch->deliveryUser?->displayName() ?: '-' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between gap-3">
+                            <span class="text-muted">Phương tiện</span>
+                            <strong>{{ $batch->vehicle?->displayName() ?: '-' }}</strong>
+                        </div>
+                        @if($batch->vehicle?->vehicle_type === 'car')
+                            <div class="d-flex justify-content-between gap-3">
+                                <span class="text-muted">Trọng tải</span>
+                                <strong>{{ $batch->vehicle->load_capacity ? number_format($batch->vehicle->load_capacity, 2) : '-' }}</strong>
+                            </div>
+                        @endif
                         <div>
                             <div class="text-muted small mb-1">Ghi chú</div>
                             <div class="border rounded p-2 bg-light">{{ $batch->note ?: '-' }}</div>
@@ -70,24 +90,59 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="fw-bold mb-3">Thêm đơn</h5>
-                    <form class="delivery-api-form row g-2 align-items-end" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.orders.store', $batch) }}" data-success-reload="true">
-                        @csrf
-                        <div class="col-md-9">
-                            <label class="form-label fw-semibold">Đơn chờ giao</label>
-                            <select name="fulfillment_order_id" class="form-select" required>
-                                <option value="">Chọn đơn</option>
-                                @foreach($availableOrders as $order)
-                                    <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name ?: '-' }} (SL {{ $order->total_quantity ?? 0 }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <button class="btn btn-primary w-100 fw-semibold" type="submit">
-                                <i class="bi bi-plus-lg me-1"></i>Thêm đơn
-                            </button>
-                        </div>
-                    </form>
+                    @if($canManageDeliveryBatches)
+                        <h5 class="fw-bold mb-3">Cập nhật chuyến</h5>
+                        <form method="POST" action="{{ route('delivery.batches.update', $batch) }}" class="row g-2 align-items-end mb-4">
+                            @csrf
+                            @method('PATCH')
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Nhân viên giao</label>
+                                <select name="delivery_user_id" class="form-select">
+                                    <option value="">Chưa gán</option>
+                                    @foreach($deliveryUsers as $user)
+                                        <option value="{{ $user->id }}" @selected((int) $batch->delivery_user_id === (int) $user->id)>{{ $user->displayName() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Phương tiện</label>
+                                <select name="vehicle_id" class="form-select">
+                                    <option value="">Không chọn</option>
+                                    @foreach($activeVehicles as $vehicle)
+                                        <option value="{{ $vehicle->id }}" @selected((int) $batch->vehicle_id === (int) $vehicle->id)>{{ $vehicle->displayName() }}{{ $vehicle->vehicle_type === 'car' && $vehicle->load_capacity ? ' / ' . number_format($vehicle->load_capacity, 2) : '' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Ghi chú giao</label>
+                                <input type="text" name="delivery_note" value="{{ $batch->delivery_note }}" class="form-control">
+                            </div>
+                            <div class="col-12 d-flex justify-content-end gap-2">
+                                <button class="btn btn-primary fw-semibold" type="submit">Lưu chuyến</button>
+                            </div>
+                        </form>
+
+                        <h5 class="fw-bold mb-3">Thêm đơn</h5>
+                        <form class="delivery-api-form row g-2 align-items-end" method="POST" data-method="POST" data-endpoint="{{ route('delivery.batches.orders.store', $batch) }}" data-success-reload="true">
+                            @csrf
+                            <div class="col-md-9">
+                                <label class="form-label fw-semibold">Đơn chờ giao</label>
+                                <select name="fulfillment_order_id" class="form-select" required>
+                                    <option value="">Chọn đơn</option>
+                                    @foreach($availableOrders as $order)
+                                        <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name ?: '-' }} (SL {{ $order->total_quantity ?? 0 }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100 fw-semibold" type="submit">
+                                    <i class="bi bi-plus-lg me-1"></i>Thêm đơn
+                                </button>
+                            </div>
+                        </form>
+                    @else
+                        <div class="text-muted">Bạn chỉ có quyền xem chuyến được gán.</div>
+                    @endif
                 </div>
             </div>
         </div>

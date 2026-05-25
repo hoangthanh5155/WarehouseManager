@@ -29,6 +29,12 @@ class EnsureUserHasPermission
             'create_sales_orders' => $user?->canCreateSalesOrders(),
             'approve_customer_orders' => $user?->canApproveCustomerOrders(),
             'manage_cashflow' => $user?->canManageCashflow(),
+            'manage_delivery_vehicles' => $user?->canManageDeliveryVehicles(),
+            'manage_delivery_batches' => $user?->canManageDeliveryBatches(),
+            'view_all_delivery_batches' => $user?->canViewAllDeliveryBatches(),
+            'delivery_access' => $user?->canManageDeliveryBatches()
+                || $user?->canViewAllDeliveryBatches()
+                || $user?->canExportStock(),
             default => false,
         };
 

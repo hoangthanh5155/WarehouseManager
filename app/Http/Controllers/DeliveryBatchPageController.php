@@ -5,29 +5,43 @@ namespace App\Http\Controllers;
 use App\Models\DeliveryBatch;
 use App\Models\DeliveryBatchOrder;
 use App\Models\DeliveryBatchSerial;
+use App\Models\DeliveryVehicle;
 use App\Models\FulfillmentOrder;
 use App\Models\FulfillmentOrderSerial;
+use App\Models\User;
+use App\Services\Warehouse\DeliveryBatchService;
 use App\Services\Warehouse\ExportStockService;
 use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DeliveryBatchPageController extends Controller
 {
     public function ordersIndex()
     {
-        $orders = FulfillmentOrder::query()
+        $user = request()->user();
+        $ordersQuery = FulfillmentOrder::query()
             ->whereIn('status', [
                 WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
                 WarehouseConstants::FULFILLMENT_IN_DELIVERY,
                 WarehouseConstants::FULFILLMENT_DELIVERED,
                 WarehouseConstants::FULFILLMENT_FAILED,
             ])
-            ->with(['items.productCatalog', 'batchOrders.deliveryBatch.serials.productCatalog', 'preparedSerials.productCatalog'])
+            ->with(['items.productCatalog', 'batchOrders.deliveryBatch.deliveryUser', 'batchOrders.deliveryBatch.vehicle', 'batchOrders.deliveryBatch.serials.productCatalog', 'preparedSerials.productCatalog'])
             ->withCount('items')
             ->withSum('items as total_quantity', 'quantity')
-            ->withSum('items as total_amount', 'total_amount')
+            ->withSum('items as total_amount', 'total_amount');
+
+        if (!$user?->canViewAllDeliveryBatches()) {
+            $ordersQuery->whereHas('batchOrders.deliveryBatch', function ($query) use ($user) {
+                $query->where('delivery_user_id', $user?->id)
+                    ->orWhere('driver_user_id', $user?->id);
+            });
+        }
+
+        $orders = $ordersQuery
             ->latest()
             ->paginate(15);
 
@@ -36,17 +50,36 @@ class DeliveryBatchPageController extends Controller
 
     public function batchesIndex()
     {
-        $batches = DeliveryBatch::query()
-            ->withCount(['batchOrders', 'serials'])
+        $user = request()->user();
+        $batchesQuery = DeliveryBatch::query()
+            ->with(['deliveryUser', 'vehicle'])
+            ->withCount(['batchOrders', 'serials']);
+
+        if (!$user?->canViewAllDeliveryBatches()) {
+            $batchesQuery->where(function ($query) use ($user) {
+                $query->where('delivery_user_id', $user?->id)
+                    ->orWhere('driver_user_id', $user?->id);
+            });
+        }
+
+        $batches = $batchesQuery
             ->latest()
             ->paginate(15);
 
-        return view('delivery.batches.index', compact('batches'));
+        return view('delivery.batches.index', [
+            'batches' => $batches,
+            'deliveryUsers' => $this->deliveryUsers(),
+            'activeVehicles' => DeliveryVehicle::query()->where('status', DeliveryVehicle::STATUS_ACTIVE)->orderBy('vehicle_type')->orderBy('plate_number')->get(),
+        ]);
     }
 
     public function batchesShow(DeliveryBatch $deliveryBatch)
     {
+        abort_unless(request()->user()?->canViewDeliveryBatch($deliveryBatch), 403);
+
         $deliveryBatch->load([
+            'deliveryUser',
+            'vehicle',
             'batchOrders.fulfillmentOrder.items.productCatalog',
             'batchOrders.fulfillmentOrder.preparedSerials.productCatalog',
             'serials.productCatalog',
@@ -71,7 +104,39 @@ class DeliveryBatchPageController extends Controller
         return view('delivery.batches.show', [
             'batch' => $deliveryBatch,
             'availableOrders' => $availableOrders,
+            'deliveryUsers' => $this->deliveryUsers(),
+            'activeVehicles' => DeliveryVehicle::query()->where('status', DeliveryVehicle::STATUS_ACTIVE)->orderBy('vehicle_type')->orderBy('plate_number')->get(),
+            'canManageDeliveryBatches' => request()->user()?->canManageDeliveryBatches(),
         ]);
+    }
+
+    public function updateBatch(Request $request, DeliveryBatch $deliveryBatch, DeliveryBatchService $service)
+    {
+        abort_unless($request->user()?->canManageDeliveryBatches(), 403);
+
+        $validated = $request->validate([
+            'delivery_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'vehicle_id' => ['nullable', 'integer', Rule::exists('delivery_vehicles', 'id')->where('status', DeliveryVehicle::STATUS_ACTIVE)],
+            'delivery_note' => ['nullable', 'string'],
+            'note' => ['nullable', 'string'],
+        ]);
+
+        $service->update($deliveryBatch, $validated);
+
+        return back()->with('success', 'Đã cập nhật chuyến giao.');
+    }
+
+    public function cancelBatch(Request $request, DeliveryBatch $deliveryBatch, DeliveryBatchService $service)
+    {
+        abort_unless($request->user()?->canManageDeliveryBatches(), 403);
+
+        try {
+            $service->cancel($deliveryBatch, $request->user()?->id);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return redirect()->route('delivery.batches.index')->with('success', 'Đã hủy chuyến giao. Đơn trong chuyến được giữ lại.');
     }
 
     public function print(FulfillmentOrder $fulfillmentOrder)
@@ -136,6 +201,11 @@ class DeliveryBatchPageController extends Controller
 
                 if (!$batchOrder) {
                     throw ValidationException::withMessages(['delivery_batch_id' => 'Don chua nam trong chuyen giao.']);
+                }
+
+                $batchOrder->load('deliveryBatch');
+                if (!$request->user()?->canViewDeliveryBatch($batchOrder->deliveryBatch)) {
+                    abort(403);
                 }
 
                 $scannedSerials = collect(preg_split('/\R+/', (string) $validated['serials']))
@@ -279,8 +349,18 @@ class DeliveryBatchPageController extends Controller
         DB::transaction(function () use ($fulfillmentOrder, $validated) {
             $order = FulfillmentOrder::query()
                 ->whereKey($fulfillmentOrder->id)
+                ->with('batchOrders.deliveryBatch')
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $openBatch = $order->batchOrders->whereNotIn('status', [
+                WarehouseConstants::DELIVERY_ORDER_DELIVERED,
+                WarehouseConstants::DELIVERY_ORDER_FAILED,
+                WarehouseConstants::DELIVERY_ORDER_CANCELLED,
+            ])->sortByDesc('id')->first()?->deliveryBatch;
+            if ($openBatch && !$request->user()?->canViewDeliveryBatch($openBatch)) {
+                abort(403);
+            }
 
             $now = now();
             $order->update([
@@ -301,5 +381,25 @@ class DeliveryBatchPageController extends Controller
         });
 
         return redirect()->route('delivery.orders.index')->with('success', 'Da danh dau giao that bai.');
+    }
+
+    private function deliveryUsers()
+    {
+        return User::query()
+            ->where('status', User::STATUS_ACTIVE)
+            ->where(function ($query) {
+                $query->whereIn('role', [
+                    User::ROLE_ADMIN,
+                    User::ROLE_WAREHOUSE_MANAGER,
+                    User::ROLE_WAREHOUSE_STAFF,
+                ])->orWhereHas('featurePermissions', fn ($permissions) => $permissions
+                    ->whereIn('ability', [
+                        User::ABILITY_MANAGE_DELIVERY_BATCHES,
+                        User::ABILITY_VIEW_ALL_DELIVERY_BATCHES,
+                    ]));
+            })
+            ->orderBy('display_name')
+            ->orderBy('name')
+            ->get();
     }
 }

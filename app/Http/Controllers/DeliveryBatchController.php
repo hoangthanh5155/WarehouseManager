@@ -13,6 +13,7 @@ use App\Services\Warehouse\FulfillmentOrderService;
 use App\Support\Warehouse\WarehouseConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -57,6 +58,9 @@ class DeliveryBatchController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'batch_code' => ['nullable', 'string'],
+            'delivery_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'vehicle_id' => ['nullable', 'integer', Rule::exists('delivery_vehicles', 'id')->where('status', 'active')],
+            'delivery_note' => ['nullable', 'string'],
             'note' => ['nullable', 'string'],
         ]);
 
