@@ -37,6 +37,9 @@ class DeliveryVehicleController extends Controller
         abort_unless($request->user()?->canManageDeliveryVehicles(), 403);
 
         $validated = $this->validatePayload($request);
+        if (($validated['vehicle_type'] ?? null) === DeliveryVehicle::TYPE_MOTORCYCLE) {
+            $validated['load_capacity'] = null;
+        }
         $validated['created_by'] = $request->user()?->id;
         $validated['updated_by'] = $request->user()?->id;
 
@@ -61,6 +64,9 @@ class DeliveryVehicleController extends Controller
         abort_unless($request->user()?->canManageDeliveryVehicles(), 403);
 
         $validated = $this->validatePayload($request, $deliveryVehicle);
+        if (($validated['vehicle_type'] ?? null) === DeliveryVehicle::TYPE_MOTORCYCLE) {
+            $validated['load_capacity'] = null;
+        }
         $validated['updated_by'] = $request->user()?->id;
 
         $deliveryVehicle->update($validated);
@@ -97,7 +103,12 @@ class DeliveryVehicleController extends Controller
                 'max:50',
                 Rule::unique('delivery_vehicles', 'plate_number')->ignore($vehicle?->id),
             ],
-            'load_capacity' => ['nullable', 'numeric', 'min:0'],
+            'load_capacity' => [
+                Rule::requiredIf(fn () => $request->input('vehicle_type') === DeliveryVehicle::TYPE_CAR),
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
             'status' => ['required', Rule::in(array_keys(DeliveryVehicle::statusLabels()))],
             'note' => ['nullable', 'string'],
         ]);

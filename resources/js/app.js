@@ -39,4 +39,28 @@ document.addEventListener('input', (event) => {
     input.value = String(Math.min(max, Math.max(min, Number.isNaN(value) ? min : value)));
 });
 
+function syncDeliveryVehicleForm(form) {
+    const typeSelect = form.querySelector('[data-delivery-vehicle-type]');
+    const loadWrapper = form.querySelector('[data-load-capacity-wrapper]');
+    const loadInput = form.querySelector('[data-load-capacity-input]');
+    const plateInput = form.querySelector('[data-plate-number-input]');
+    if (!typeSelect || !loadWrapper || !loadInput) return;
+
+    const isCar = typeSelect.value === 'car';
+    loadWrapper.classList.toggle('d-none', !isCar);
+    loadInput.required = isCar;
+    if (plateInput) plateInput.required = isCar;
+
+    if (!isCar) {
+        loadInput.value = '';
+    }
+}
+
+document.querySelectorAll('form').forEach((form) => {
+    if (!form.querySelector('[data-delivery-vehicle-type]')) return;
+
+    syncDeliveryVehicleForm(form);
+    form.querySelector('[data-delivery-vehicle-type]')?.addEventListener('change', () => syncDeliveryVehicleForm(form));
+});
+
 import './layout/sidebar';

@@ -2,7 +2,7 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label fw-semibold">Loại phương tiện</label>
-        <select name="vehicle_type" class="form-select" required>
+        <select name="vehicle_type" class="form-select" required data-delivery-vehicle-type>
             @foreach($typeLabels as $value => $label)
                 <option value="{{ $value }}" @selected(old('vehicle_type', $vehicle->vehicle_type) === $value)>{{ $label }}</option>
             @endforeach
@@ -18,11 +18,11 @@
     </div>
     <div class="col-md-6">
         <label class="form-label fw-semibold">Biển kiểm soát</label>
-        <input type="text" name="plate_number" value="{{ old('plate_number', $vehicle->plate_number) }}" class="form-control">
+        <input type="text" name="plate_number" value="{{ old('plate_number', $vehicle->plate_number) }}" class="form-control" data-plate-number-input>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6" data-load-capacity-wrapper>
         <label class="form-label fw-semibold">Trọng tải</label>
-        <input type="number" step="0.01" min="0" name="load_capacity" value="{{ old('load_capacity', $vehicle->load_capacity) }}" class="form-control">
+        <input type="number" step="0.01" min="0" name="load_capacity" value="{{ old('load_capacity', $vehicle->load_capacity) }}" class="form-control" data-load-capacity-input>
     </div>
     <div class="col-12">
         <label class="form-label fw-semibold">Ghi chú</label>
