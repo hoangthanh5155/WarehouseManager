@@ -30,8 +30,13 @@ class DeliveryBatchService
             throw ValidationException::withMessages(['delivery_batch_id' => 'Chuyen giao da dong, khong the them don.']);
         }
 
-        if ($order->status !== WarehouseConstants::FULFILLMENT_READY_TO_DELIVER) {
-            throw ValidationException::withMessages(['fulfillment_order_id' => 'Đơn chưa sẵn sàng giao.']);
+        if (!in_array($order->status, [
+            WarehouseConstants::FULFILLMENT_PENDING,
+            WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
+            WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
+            WarehouseConstants::FULFILLMENT_IN_DELIVERY,
+        ], true)) {
+            throw ValidationException::withMessages(['fulfillment_order_id' => 'Don chua san sang giao.']);
         }
 
         return DB::transaction(function () use ($batch, $order) {
@@ -47,7 +52,11 @@ class DeliveryBatchService
                 $batch->update(['status' => WarehouseConstants::DELIVERY_BATCH_PICKING]);
             }
 
-            if ($order->status === WarehouseConstants::FULFILLMENT_READY_TO_DELIVER) {
+            if (in_array($order->status, [
+                WarehouseConstants::FULFILLMENT_PENDING,
+                WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
+                WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
+            ], true)) {
                 $order->update(['status' => WarehouseConstants::FULFILLMENT_IN_DELIVERY]);
             }
 

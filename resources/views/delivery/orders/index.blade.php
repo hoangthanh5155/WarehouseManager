@@ -42,73 +42,19 @@
                         <tr>
                             <th>Mã đơn</th>
                             <th>Loại</th>
-                            <th>Người mua</th>
+                            <th>Khách</th>
                             <th>Trạng thái</th>
-                            <th class="text-end">SL</th>
+                            <th>Sản phẩm cần giao</th>
+                            <th>Chuyến giao</th>
                             <th class="text-end">Tổng tiền</th>
-                            <th>SN giữ</th>
                             <th class="text-end">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($orders as $order)
-                            @php
-                                $modalId = 'deliverOrderModal' . $order->id;
-                                $preparedSerials = $order->preparedSerials->where('status', 'prepared');
-                            @endphp
-                            <tr>
-                                <td>
-                                    <div class="fw-bold">{{ $order->order_code }}</div>
-                                    <div class="text-muted small">{{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
-                                </td>
-                                <td>{{ $typeLabel[$order->order_type] ?? $order->order_type }}</td>
-                                <td>
-                                    <div class="fw-semibold">{{ $order->buyer_name }}</div>
-                                    <div class="text-muted small">{{ $customerLabel[$order->customer_type] ?? $order->customer_type }}</div>
-                                </td>
-                                <td><span class="badge text-bg-{{ $statusClass[$order->status] ?? 'secondary' }}">{{ $statusLabel[$order->status] ?? $order->status }}</span></td>
-                                <td class="text-end">{{ number_format($order->total_quantity ?? 0) }}</td>
-                                <td class="text-end">{{ number_format($order->total_amount ?? 0) }} đ</td>
-                                <td>
-                                    <div class="d-flex flex-wrap gap-1" style="max-width: 260px;">
-                                        @forelse($preparedSerials->take(6) as $serial)
-                                            <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
-                                        @empty
-                                            <span class="text-muted small">-</span>
-                                        @endforelse
-                                        @if($preparedSerials->count() > 6)
-                                            <span class="badge text-bg-secondary">+{{ $preparedSerials->count() - 6 }}</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="text-end">
-                                    <div class="d-flex flex-wrap justify-content-end gap-1">
-                                        <a href="{{ route('delivery.orders.print', $order) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-printer me-1"></i>In đơn
-                                        </a>
-                                        @if($order->public_token)
-                                            <a href="{{ route('delivery.orders.public', $order->public_token) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                <i class="bi bi-box-arrow-up-right me-1"></i>Phiếu điện tử
-                                            </a>
-                                        @endif
-                                        @if(in_array($order->status, ['ready_to_deliver', 'in_delivery'], true))
-                                            <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                                                <i class="bi bi-truck me-1"></i>Giao hàng
-                                            </button>
-                                            <form method="POST" action="{{ route('delivery.orders.confirm_fail', $order) }}" onsubmit="return confirm('Đánh dấu giao thất bại?')">
-                                                @csrf
-                                                <button class="btn btn-sm btn-outline-danger" type="submit">
-                                                    <i class="bi bi-x-circle me-1"></i>Thất bại
-                                                </button>
-                                            </form>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
+                            @include('delivery.orders.partials.order-row', ['order' => $order])
                         @empty
-                            <tr>
-                                <td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng.</td>
-                            </tr>
+                            <tr><td colspan="8" class="text-center text-muted py-4">Chưa có đơn hàng.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -116,66 +62,7 @@
 
             <div class="delivery-order-mobile-list d-md-none">
                 @forelse($orders as $order)
-                    @php
-                        $modalId = 'deliverOrderModal' . $order->id;
-                        $preparedSerials = $order->preparedSerials->where('status', 'prepared');
-                    @endphp
-                    <div class="delivery-order-card">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                            <div class="min-w-0">
-                                <div class="fw-bold text-break">{{ $order->order_code }}</div>
-                                <div class="text-muted small">{{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
-                            </div>
-                            <span class="badge text-bg-{{ $statusClass[$order->status] ?? 'secondary' }} flex-shrink-0">{{ $statusLabel[$order->status] ?? $order->status }}</span>
-                        </div>
-
-                        <div class="delivery-order-meta">
-                            <div>
-                                <span class="text-muted small d-block">Khách</span>
-                                <span class="fw-semibold text-break">{{ $order->buyer_name }}</span>
-                            </div>
-                            <div>
-                                <span class="text-muted small d-block">Tổng tiền</span>
-                                <span class="fw-bold">{{ number_format($order->total_amount ?? 0) }} đ</span>
-                            </div>
-                        </div>
-
-                        <div class="mt-3">
-                            <div class="text-muted small mb-1">SN đã soạn</div>
-                            <div class="d-flex flex-wrap gap-1">
-                                @forelse($preparedSerials->take(8) as $serial)
-                                    <span class="badge text-bg-light border text-break">{{ $serial->serial_number_snapshot }}</span>
-                                @empty
-                                    <span class="text-muted small">-</span>
-                                @endforelse
-                                @if($preparedSerials->count() > 8)
-                                    <span class="badge text-bg-secondary">+{{ $preparedSerials->count() - 8 }}</span>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ route('delivery.orders.print', $order) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-printer me-1"></i>In đơn
-                            </a>
-                            @if($order->public_token)
-                                <a href="{{ route('delivery.orders.public', $order->public_token) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-box-arrow-up-right me-1"></i>Phiếu điện tử
-                                </a>
-                            @endif
-                            @if(in_array($order->status, ['ready_to_deliver', 'in_delivery'], true))
-                                <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}">
-                                    <i class="bi bi-truck me-1"></i>Giao hàng
-                                </button>
-                                <form method="POST" action="{{ route('delivery.orders.confirm_fail', $order) }}" onsubmit="return confirm('Đánh dấu giao thất bại?')">
-                                    @csrf
-                                    <button class="btn btn-sm btn-outline-danger w-100" type="submit">
-                                        <i class="bi bi-x-circle me-1"></i>Thất bại
-                                    </button>
-                                </form>
-                            @endif
-                        </div>
-                    </div>
+                    @include('delivery.orders.partials.order-card', ['order' => $order])
                 @empty
                     <div class="text-center text-muted py-4">Chưa có đơn hàng.</div>
                 @endforelse
@@ -190,9 +77,30 @@
 @foreach($orders as $order)
     @php
         $modalId = 'deliverOrderModal' . $order->id;
-        $preparedSerials = $order->preparedSerials->where('status', 'prepared');
+        $activeBatchOrder = $order->batchOrders
+            ->whereNotIn('status', ['delivered', 'failed', 'cancelled'])
+            ->sortByDesc('id')
+            ->first();
+        $batch = $activeBatchOrder?->deliveryBatch;
+        $batchSerials = $batch?->serials
+            ->whereIn('status', ['reserved', 'assigned'])
+            ->values() ?? collect();
+        $orderItems = $order->items->map(fn ($item) => [
+            'id' => $item->id,
+            'product_catalog_id' => $item->product_catalog_id,
+            'product_name' => $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A'),
+            'quantity' => (int) $item->quantity,
+        ])->values();
+        $batchSerialPayload = $batchSerials->map(fn ($serial) => [
+            'serial_number' => $serial->serial_number,
+            'product_catalog_id' => $serial->product_catalog_id,
+            'status' => $serial->status,
+            'fulfillment_order_id' => $serial->fulfillment_order_id,
+        ])->values();
     @endphp
-    <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
+    <div class="modal fade delivery-confirm-modal" id="{{ $modalId }}" tabindex="-1" aria-hidden="true"
+        data-order-items='@json($orderItems)'
+        data-batch-serials='@json($batchSerialPayload)'>
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content border-0 shadow">
                 <form method="POST" action="{{ route('delivery.orders.confirm_deliver', $order) }}">
@@ -200,46 +108,58 @@
                     <div class="modal-header bg-light">
                         <div>
                             <h5 class="modal-title fw-bold">Xác nhận giao hàng</h5>
-                            <div class="text-muted small">{{ $order->order_code }} - {{ $order->buyer_name }}</div>
+                            <div class="text-muted small">{{ $order->order_code }} - {{ $order->buyer_name ?: 'Khách chưa đặt tên' }}</div>
+                            <div class="text-muted small">Chuyến: {{ $batch?->batch_code ?: 'Chưa có chuyến' }}</div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        @unless($batch)
+                            <div class="alert alert-warning">Đơn chưa nằm trong chuyến giao, chưa thể xác nhận.</div>
+                        @endunless
+
                         <div class="table-responsive mb-3">
                             <table class="table table-sm align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Sản phẩm</th>
-                                        <th class="text-end">SL</th>
-                                        <th>SN đã soạn</th>
+                                        <th>Sản phẩm cần giao</th>
+                                        <th class="text-end">Cần</th>
+                                        <th class="text-end">Đã pass</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($order->items as $item)
-                                        @php($itemSerials = $preparedSerials->where('fulfillment_order_item_id', $item->id))
-                                        <tr>
+                                        <tr data-progress-row data-catalog-id="{{ $item->product_catalog_id }}">
                                             <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
                                             <td class="text-end">{{ number_format($item->quantity) }}</td>
-                                            <td>
-                                                <div class="d-flex flex-wrap gap-1">
-                                                    @foreach($itemSerials as $serial)
-                                                        <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
-                                                    @endforeach
-                                                </div>
-                                            </td>
+                                            <td class="text-end fw-bold" data-progress-text>0/{{ (int) $item->quantity }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
                             </table>
                         </div>
-                        <label class="form-label fw-semibold">SN xác nhận</label>
-                        <textarea name="serials" rows="5" class="form-control" required placeholder="Quét hoặc dán SN, mỗi dòng một SN"></textarea>
+
+                        <label class="form-label fw-semibold">Quét SN từ chuyến</label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" data-scan-input placeholder="Quét hoặc nhập SN">
+                            <button class="btn btn-outline-primary" type="button" data-add-scan>Thêm</button>
+                        </div>
+                        <textarea name="serials" rows="5" class="form-control" required placeholder="Quét hoặc dán SN, mỗi dòng một SN" data-serial-lines></textarea>
+                        <div class="small mt-2" data-scan-message></div>
+
+                        <div class="mt-3">
+                            <div class="fw-semibold mb-1">SN đã quét</div>
+                            <div class="d-flex flex-wrap gap-1" data-scanned-list>
+                                <span class="text-muted small">Chưa có SN.</span>
+                            </div>
+                        </div>
+
                         <label class="form-label fw-semibold mt-3">Ghi chú</label>
                         <textarea name="note" rows="2" class="form-control"></textarea>
                     </div>
                     <div class="modal-footer bg-light">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-success fw-bold">Giao thành công</button>
+                        <button type="submit" class="btn btn-success fw-bold" data-submit-delivery disabled>Giao thành công</button>
                     </div>
                 </form>
             </div>
@@ -251,24 +171,10 @@
 @push('styles')
 <style>
     @media (max-width: 767.98px) {
-        .delivery-order-mobile-list {
-            padding: 12px;
-        }
-
-        .delivery-order-card {
-            border-bottom: 1px solid #e5e7eb;
-            padding: 14px 0;
-        }
-
-        .delivery-order-card:first-child {
-            padding-top: 0;
-        }
-
-        .delivery-order-card:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
-        }
-
+        .delivery-order-mobile-list { padding: 12px; }
+        .delivery-order-card { border-bottom: 1px solid #e5e7eb; padding: 14px 0; }
+        .delivery-order-card:first-child { padding-top: 0; }
+        .delivery-order-card:last-child { border-bottom: 0; padding-bottom: 0; }
         .delivery-order-meta {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto;
@@ -277,4 +183,105 @@
         }
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.querySelectorAll('.delivery-confirm-modal').forEach((modal) => {
+    const items = JSON.parse(modal.dataset.orderItems || '[]');
+    const batchSerials = JSON.parse(modal.dataset.batchSerials || '[]');
+    const serialMap = new Map(batchSerials.map((row) => [String(row.serial_number), row]));
+    const scanned = [];
+    const input = modal.querySelector('[data-scan-input]');
+    const textarea = modal.querySelector('[data-serial-lines]');
+    const list = modal.querySelector('[data-scanned-list]');
+    const message = modal.querySelector('[data-scan-message]');
+    const submit = modal.querySelector('[data-submit-delivery]');
+
+    function setMessage(text, type = 'muted') {
+        message.textContent = text;
+        message.className = `small mt-2 text-${type}`;
+    }
+
+    function countsByCatalog() {
+        return scanned.reduce((map, serial) => {
+            const row = serialMap.get(serial);
+            const key = String(row.product_catalog_id);
+            map.set(key, (map.get(key) || 0) + 1);
+            return map;
+        }, new Map());
+    }
+
+    function render() {
+        const counts = countsByCatalog();
+        let complete = items.length > 0;
+
+        modal.querySelectorAll('[data-progress-row]').forEach((row) => {
+            const catalogId = String(row.dataset.catalogId);
+            const item = items.find((candidate) => String(candidate.product_catalog_id) === catalogId);
+            const passed = counts.get(catalogId) || 0;
+            row.querySelector('[data-progress-text]').textContent = `${passed}/${item.quantity}`;
+            if (passed !== Number(item.quantity)) complete = false;
+        });
+
+        textarea.value = scanned.join('\n');
+        list.innerHTML = scanned.length
+            ? scanned.map((serial) => `<span class="badge text-bg-light border">${serial}</span>`).join('')
+            : '<span class="text-muted small">Chưa có SN.</span>';
+        submit.disabled = !complete;
+    }
+
+    function addSerial(raw) {
+        const serial = String(raw || '').trim();
+        if (!serial) return;
+        if (scanned.includes(serial)) {
+            setMessage('SN đã quét trong đơn này.', 'warning');
+            return;
+        }
+        const batchSerial = serialMap.get(serial);
+        if (!batchSerial) {
+            setMessage('SN không thuộc chuyến giao.', 'danger');
+            return;
+        }
+        if (batchSerial.fulfillment_order_id) {
+            setMessage('SN đã giao hoặc đã gắn cho đơn khác.', 'danger');
+            return;
+        }
+        const item = items.find((candidate) => Number(candidate.product_catalog_id) === Number(batchSerial.product_catalog_id));
+        if (!item) {
+            setMessage('SN sai sản phẩm.', 'danger');
+            return;
+        }
+        const count = scanned.filter((value) => Number(serialMap.get(value).product_catalog_id) === Number(item.product_catalog_id)).length;
+        if (count >= Number(item.quantity)) {
+            setMessage('Sản phẩm này đã đủ SN.', 'warning');
+            return;
+        }
+        scanned.push(serial);
+        setMessage('SN hợp lệ.', 'success');
+        render();
+    }
+
+    modal.querySelector('[data-add-scan]')?.addEventListener('click', () => {
+        addSerial(input.value);
+        input.value = '';
+        input.focus();
+    });
+
+    input?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            modal.querySelector('[data-add-scan]')?.click();
+        }
+    });
+
+    textarea?.addEventListener('input', () => {
+        scanned.splice(0, scanned.length);
+        textarea.value.split(/\r?\n/).forEach(addSerial);
+        render();
+    });
+
+    render();
+});
+</script>
 @endpush

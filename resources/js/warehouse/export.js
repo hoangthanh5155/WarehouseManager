@@ -315,7 +315,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return false;
         }
 
-        if (getExportType() === 'normal') {
+        if (getExportType() === 'normal') return true;
+        if (false && document.getElementById('buyerName')) {
             if (!document.getElementById('buyerName').value.trim()) {
                 showToast('Vui lòng nhập người mua.', 'warning');
                 return false;

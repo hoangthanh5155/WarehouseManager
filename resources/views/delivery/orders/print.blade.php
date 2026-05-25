@@ -5,171 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Phiếu giao hàng {{ $order->order_code }}</title>
     <style>
+        @page { size: A4; margin: 14mm; }
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            background: #eef2f7;
-            color: #172033;
+            background: #edf1f5;
+            color: #111827;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 14px;
-            line-height: 1.5;
+            font-size: 13px;
+            line-height: 1.45;
         }
-        .container {
-            width: min(100%, 980px);
-            margin: 0 auto;
-            padding: 20px 12px;
-        }
-        .toolbar {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
+        .preview { width: min(100%, 980px); margin: 0 auto; padding: 18px 12px; }
+        .toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 38px;
-            padding: 8px 14px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            background: #fff;
-            color: #334155;
-            font-weight: 700;
-            text-decoration: none;
-            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 38px; padding: 8px 14px; border: 1px solid #cbd5e1;
+            border-radius: 6px; background: #fff; color: #334155;
+            font-weight: 700; text-decoration: none; cursor: pointer;
         }
-        .btn-primary {
-            border-color: #1d4ed8;
-            background: #2563eb;
-            color: #fff;
-        }
+        .btn-primary { border-color: #1d4ed8; background: #2563eb; color: #fff; }
         .sheet {
-            overflow: hidden;
-            border: 1px solid #dbe3ef;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, .08); padding: 26px;
         }
-        .sheet-body { padding: 28px; }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            gap: 18px;
-            margin-bottom: 24px;
-        }
-        h1 {
-            margin: 0 0 4px;
-            font-size: 28px;
-            line-height: 1.2;
-        }
-        .muted { color: #64748b; }
-        .small { font-size: 12px; }
-        .fw-bold { font-weight: 700; }
-        .fw-semibold { font-weight: 600; }
+        .top { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; border-bottom: 2px solid #111827; padding-bottom: 12px; }
+        .company-name { font-size: 18px; font-weight: 800; text-transform: uppercase; }
+        .muted { color: #4b5563; }
+        .doc-code { border: 1px solid #111827; padding: 10px; text-align: center; font-weight: 700; }
+        h1 { margin: 18px 0 14px; text-align: center; font-size: 24px; letter-spacing: 0; }
+        .info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 22px; margin-bottom: 14px; }
+        .line { border-bottom: 1px dotted #9ca3af; min-height: 22px; }
+        .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; min-width: 760px; border-collapse: collapse; }
+        th, td { border: 1px solid #111827; padding: 7px 8px; vertical-align: top; }
+        th { background: #f3f4f6; text-align: center; font-weight: 700; }
+        .text-center { text-align: center; }
         .text-end { text-align: right; }
-        .text-md-end { text-align: right; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        table {
-            width: 100%;
-            min-width: 680px;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #dbe3ef;
-            padding: 10px;
-            vertical-align: top;
-        }
-        th {
-            background: #f8fafc;
-            color: #334155;
-            font-weight: 700;
-        }
-        tfoot th {
-            background: #f1f5f9;
-            font-size: 15px;
-        }
-        .serial-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            min-width: 180px;
-        }
-        .badge {
-            display: inline-flex;
-            max-width: 100%;
-            padding: 3px 7px;
-            border: 1px solid #cbd5e1;
-            border-radius: 999px;
-            background: #f8fafc;
-            color: #172033;
-            font-size: 12px;
-            font-weight: 700;
-            overflow-wrap: anywhere;
-        }
-        .note {
-            margin-top: 18px;
-            padding-top: 12px;
-            border-top: 1px solid #e5e7eb;
-        }
-
+        tfoot th { background: #fff; font-size: 14px; }
+        .amount-text { margin-top: 10px; }
+        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 34px; text-align: center; }
+        .signature-title { font-weight: 700; }
+        .signature-note { color: #6b7280; font-style: italic; margin-top: 3px; }
+        .signature-space { height: 78px; }
         @media (max-width: 640px) {
             body { background: #fff; }
-            .container { padding: 12px; }
-            .toolbar {
-                position: sticky;
-                top: 0;
-                z-index: 2;
-                justify-content: stretch;
-                padding: 8px 0;
-                background: #fff;
-            }
+            .preview { padding: 10px; }
+            .toolbar { position: sticky; top: 0; z-index: 2; background: #fff; padding: 8px 0; justify-content: stretch; }
             .toolbar .btn { flex: 1; }
-            .sheet {
-                border-radius: 6px;
-                box-shadow: none;
-            }
-            .sheet-body { padding: 18px 14px; }
-            .header {
-                flex-direction: column;
-                margin-bottom: 18px;
-            }
-            h1 { font-size: 24px; }
-            .text-md-end { text-align: left; }
-            .info-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            table { min-width: 620px; }
+            .sheet { border-radius: 4px; box-shadow: none; padding: 16px; }
+            .top, .info, .signatures { grid-template-columns: 1fr; }
+            .doc-code { text-align: left; }
+            h1 { font-size: 21px; }
+            table { min-width: 720px; }
         }
-
         @media print {
-            body {
-                background: #fff;
-                color: #000;
-            }
+            body { background: #fff; }
             .no-print { display: none !important; }
-            .container {
-                width: 100%;
-                max-width: none;
-                padding: 0;
-            }
-            .sheet {
-                border: 0;
-                border-radius: 0;
-                box-shadow: none;
-            }
-            .sheet-body { padding: 0; }
+            .preview { width: 100%; padding: 0; }
+            .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; }
             .table-wrap { overflow: visible; }
             table { min-width: 0; }
             th, td { page-break-inside: avoid; }
@@ -178,16 +71,10 @@
 </head>
 <body>
 @php
-    $statusLabel = [
-        'ready_to_deliver' => 'Chờ giao',
-        'in_delivery' => 'Đang giao',
-        'delivered' => 'Đã giao',
-        'failed' => 'Giao thất bại',
-        'cancelled' => 'Đã hủy',
-    ];
-    $serials = $order->preparedSerials;
+    $company = $currentCompanyProfile ?? \App\Models\CompanyProfile::current();
+    $companyName = $company?->company_name ?: ($systemBrandName ?? \App\Models\CompanyProfile::fallbackName());
 @endphp
-<div class="container">
+<div class="preview">
     <div class="toolbar no-print">
         @unless($publicView)
             <a href="{{ route('delivery.orders.index') }}" class="btn">Quay lại</a>
@@ -196,82 +83,81 @@
     </div>
 
     <div class="sheet">
-        <div class="sheet-body">
-            <div class="header">
-                <div>
-                    <h1>Phiếu giao hàng</h1>
-                    <div class="muted">{{ $order->order_code }}</div>
-                </div>
-                <div class="text-md-end">
-                    <div class="fw-semibold">{{ $statusLabel[$order->status] ?? $order->status }}</div>
-                    <div class="muted small">Ngày tạo: {{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
-                    @if($order->delivered_at)
-                        <div class="muted small">Ngày giao: {{ optional($order->delivered_at)->format('d/m/Y H:i') }}</div>
-                    @endif
-                </div>
+        <div class="top">
+            <div>
+                <div class="company-name">{{ $companyName }}</div>
+                @if($company?->address)<div>Địa chỉ: {{ $company->address }}</div>@endif
+                @if($company?->hotline)<div>Điện thoại: {{ $company->hotline }}</div>@endif
+                @if($company?->tax_code)<div>MST: {{ $company->tax_code }}</div>@endif
+                @if($company?->bank_account || $company?->bank_name)
+                    <div>STK: {{ $company?->bank_account }}{{ $company?->bank_name ? ' - ' . $company->bank_name : '' }}</div>
+                @endif
             </div>
-
-            <div class="info-grid">
-                <div>
-                    <div class="muted small">Khách hàng</div>
-                    <div class="fw-bold">{{ $order->buyer_name }}</div>
-                    @if($order->company_name)
-                        <div>{{ $order->company_name }}</div>
-                    @endif
-                </div>
-                <div>
-                    <div class="muted small">Địa chỉ</div>
-                    <div>{{ $order->address ?: '-' }}</div>
-                    @if($order->tax_code)
-                        <div class="muted small">SĐT: {{ $order->tax_code }}</div>
-                    @endif
-                </div>
+            <div class="doc-code">
+                <div>Mã phiếu / mã đơn</div>
+                <div>{{ $order->order_code }}</div>
+                <div class="muted">{{ optional($order->created_at)->format('d/m/Y H:i') }}</div>
             </div>
+        </div>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
+        <h1>PHIẾU GIAO HÀNG</h1>
+
+        <div class="info">
+            <div>Khách hàng: <strong>{{ $order->buyer_name ?: '-' }}</strong></div>
+            <div>SĐT: <strong>{{ $order->tax_code ?: '-' }}</strong></div>
+            <div style="grid-column: 1 / -1;">Địa chỉ: <strong>{{ $order->address ?: '-' }}</strong></div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 42px;">STT</th>
+                        <th>Tên sản phẩm</th>
+                        <th style="width: 64px;">ĐVT</th>
+                        <th style="width: 64px;">SL</th>
+                        <th style="width: 110px;">Đơn giá</th>
+                        <th style="width: 120px;">Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($order->items as $item)
                         <tr>
-                            <th>Sản phẩm</th>
-                            <th class="text-end">SL</th>
-                            <th>Serial</th>
-                            <th class="text-end">Đơn giá</th>
-                            <th class="text-end">Thành tiền</th>
+                            <td class="text-center">{{ $loop->iteration }}</td>
+                            <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
+                            <td class="text-center">Cái</td>
+                            <td class="text-center">{{ number_format($item->quantity) }}</td>
+                            <td class="text-end">{{ number_format($item->unit_price) }} đ</td>
+                            <td class="text-end">{{ number_format($item->total_amount) }} đ</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($order->items as $item)
-                            @php($itemSerials = $serials->where('fulfillment_order_item_id', $item->id))
-                            <tr>
-                                <td class="fw-semibold">{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
-                                <td class="text-end">{{ number_format($item->quantity) }}</td>
-                                <td>
-                                    <div class="serial-list">
-                                        @foreach($itemSerials as $serial)
-                                            <span class="badge">{{ $serial->serial_number_snapshot }}</span>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td class="text-end">{{ number_format($item->unit_price) }} đ</td>
-                                <td class="text-end fw-bold">{{ number_format($item->total_amount) }} đ</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th colspan="4" class="text-end">Tổng tiền</th>
-                            <th class="text-end">{{ number_format($order->items->sum('total_amount')) }} đ</th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="5" class="text-end">Tổng tiền</th>
+                        <th class="text-end">{{ number_format($order->items->sum('total_amount')) }} đ</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
 
-            @if($order->note)
-                <div class="note">
-                    <div class="muted small">Ghi chú</div>
-                    <div>{{ $order->note }}</div>
-                </div>
-            @endif
+        <div class="amount-text">Bằng chữ: <span class="line" style="display:inline-block;width:70%;"></span></div>
+
+        @if($order->note)
+            <div style="margin-top:10px;">Ghi chú: {{ $order->note }}</div>
+        @endif
+
+        <div class="signatures">
+            <div>
+                <div class="signature-title">Người mua hàng</div>
+                <div class="signature-note">Ký, ghi rõ họ tên</div>
+                <div class="signature-space"></div>
+            </div>
+            <div>
+                <div class="signature-title">Người bán hàng</div>
+                <div class="signature-note">Ký, ghi rõ họ tên</div>
+                <div class="signature-space"></div>
+            </div>
         </div>
     </div>
 </div>

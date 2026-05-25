@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\DeliveryBatch;
+use App\Models\DeliveryBatchOrder;
+use App\Models\DeliveryBatchSerial;
 use App\Models\FulfillmentOrder;
 use App\Models\FulfillmentOrderSerial;
 use App\Services\Warehouse\ExportStockService;
@@ -22,9 +24,8 @@ class DeliveryBatchPageController extends Controller
                 WarehouseConstants::FULFILLMENT_DELIVERED,
                 WarehouseConstants::FULFILLMENT_FAILED,
             ])
-            ->with(['items.productCatalog', 'preparedSerials.productCatalog'])
+            ->with(['items.productCatalog', 'batchOrders.deliveryBatch.serials.productCatalog', 'preparedSerials.productCatalog'])
             ->withCount('items')
-            ->withCount(['preparedSerials as prepared_serials_count' => fn ($query) => $query->where('status', WarehouseConstants::ORDER_SERIAL_PREPARED)])
             ->withSum('items as total_quantity', 'quantity')
             ->withSum('items as total_amount', 'total_amount')
             ->latest()
@@ -48,11 +49,20 @@ class DeliveryBatchPageController extends Controller
         $deliveryBatch->load([
             'batchOrders.fulfillmentOrder.items.productCatalog',
             'batchOrders.fulfillmentOrder.preparedSerials.productCatalog',
+            'serials.productCatalog',
+            'serials.fulfillmentOrder',
         ]);
 
         $availableOrders = FulfillmentOrder::query()
-            ->where('status', WarehouseConstants::FULFILLMENT_READY_TO_DELIVER)
-            ->whereDoesntHave('batchOrders', fn ($query) => $query->where('delivery_batch_id', $deliveryBatch->id))
+            ->whereIn('status', [
+                WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
+                WarehouseConstants::FULFILLMENT_PENDING,
+                WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
+            ])
+            ->whereDoesntHave('batchOrders', fn ($query) => $query->whereNotIn('status', [
+                WarehouseConstants::DELIVERY_ORDER_FAILED,
+                WarehouseConstants::DELIVERY_ORDER_CANCELLED,
+            ]))
             ->withSum('items as total_quantity', 'quantity')
             ->latest()
             ->limit(50)
@@ -102,7 +112,7 @@ class DeliveryBatchPageController extends Controller
             DB::transaction(function () use ($validated, $fulfillmentOrder, $exportStockService, $request) {
                 $order = FulfillmentOrder::query()
                     ->whereKey($fulfillmentOrder->id)
-                    ->with('items')
+                    ->with(['items', 'batchOrders'])
                     ->lockForUpdate()
                     ->firstOrFail();
 
@@ -110,7 +120,22 @@ class DeliveryBatchPageController extends Controller
                     WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
                     WarehouseConstants::FULFILLMENT_IN_DELIVERY,
                 ], true)) {
-                    throw ValidationException::withMessages(['order' => 'Đơn chưa sẵn sàng giao.']);
+                    throw ValidationException::withMessages(['order' => 'Don chua san sang giao.']);
+                }
+
+                $batchOrder = DeliveryBatchOrder::query()
+                    ->where('fulfillment_order_id', $order->id)
+                    ->whereNotIn('status', [
+                        WarehouseConstants::DELIVERY_ORDER_DELIVERED,
+                        WarehouseConstants::DELIVERY_ORDER_FAILED,
+                        WarehouseConstants::DELIVERY_ORDER_CANCELLED,
+                    ])
+                    ->latest()
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$batchOrder) {
+                    throw ValidationException::withMessages(['delivery_batch_id' => 'Don chua nam trong chuyen giao.']);
                 }
 
                 $scannedSerials = collect(preg_split('/\R+/', (string) $validated['serials']))
@@ -119,37 +144,66 @@ class DeliveryBatchPageController extends Controller
                     ->values();
 
                 if ($scannedSerials->isEmpty() || $scannedSerials->count() !== $scannedSerials->unique()->count()) {
-                    throw ValidationException::withMessages(['serials' => 'SN xác nhận không hợp lệ.']);
+                    throw ValidationException::withMessages(['serials' => 'SN xac nhan khong hop le.']);
                 }
 
-                $preparedSerials = FulfillmentOrderSerial::query()
-                    ->where('fulfillment_order_id', $order->id)
-                    ->where('status', WarehouseConstants::ORDER_SERIAL_PREPARED)
-                    ->orderBy('serial_number_snapshot')
-                    ->lockForUpdate()
-                    ->get();
+                $requiredQuantity = (int) $order->items->sum('quantity');
+                if ($scannedSerials->count() !== $requiredQuantity) {
+                    throw ValidationException::withMessages(['serials' => 'So SN xac nhan chua du so luong don.']);
+                }
 
-                $expectedSerials = $preparedSerials->pluck('serial_number_snapshot')->sort()->values();
-                $actualSerials = $scannedSerials->sort()->values();
-                if ($expectedSerials->implode('|') !== $actualSerials->implode('|')) {
-                    throw ValidationException::withMessages(['serials' => 'SN xác nhận không khớp đơn.']);
+                $batchSerials = DeliveryBatchSerial::query()
+                    ->where('delivery_batch_id', $batchOrder->delivery_batch_id)
+                    ->whereIn('serial_number', $scannedSerials)
+                    ->orderBy('serial_number')
+                    ->lockForUpdate()
+                    ->get()
+                    ->keyBy('serial_number');
+
+                $missing = $scannedSerials->reject(fn ($serial) => $batchSerials->has($serial))->values();
+                if ($missing->isNotEmpty()) {
+                    throw ValidationException::withMessages(['serials' => 'SN khong thuoc chuyen giao: ' . $missing->implode(', ')]);
+                }
+
+                $closed = $batchSerials->filter(fn (DeliveryBatchSerial $serial) => in_array($serial->status, [
+                    WarehouseConstants::DELIVERY_SERIAL_DELIVERED,
+                    WarehouseConstants::DELIVERY_SERIAL_RELEASED,
+                ], true));
+                if ($closed->isNotEmpty()) {
+                    throw ValidationException::withMessages(['serials' => 'SN da giao hoac khong con kha dung: ' . $closed->pluck('serial_number')->implode(', ')]);
+                }
+
+                $usedByOtherOrder = $batchSerials->filter(function (DeliveryBatchSerial $serial) use ($order) {
+                    return $serial->fulfillment_order_id && (int) $serial->fulfillment_order_id !== (int) $order->id;
+                });
+                if ($usedByOtherOrder->isNotEmpty()) {
+                    throw ValidationException::withMessages(['serials' => 'SN da gan cho don khac: ' . $usedByOtherOrder->pluck('serial_number')->implode(', ')]);
+                }
+
+                $requiredCatalogIds = $order->items->pluck('product_catalog_id')->unique();
+                $wrongCatalogs = $batchSerials
+                    ->reject(fn (DeliveryBatchSerial $serial) => $requiredCatalogIds->contains($serial->product_catalog_id))
+                    ->pluck('serial_number')
+                    ->values();
+                if ($wrongCatalogs->isNotEmpty()) {
+                    throw ValidationException::withMessages(['serials' => 'SN sai san pham: ' . $wrongCatalogs->implode(', ')]);
                 }
 
                 foreach ($order->items as $item) {
-                    $count = $preparedSerials->where('fulfillment_order_item_id', $item->id)->count();
+                    $count = $batchSerials->where('product_catalog_id', $item->product_catalog_id)->count();
                     if ($count !== (int) $item->quantity) {
-                        throw ValidationException::withMessages(['serials' => 'Số SN không khớp ' . $item->product_name_snapshot . '.']);
+                        throw ValidationException::withMessages(['serials' => 'So SN khong khop ' . $item->product_name_snapshot . '.']);
                     }
                 }
 
-                $exportItems = $order->items->map(function ($item) use ($preparedSerials) {
+                $exportItems = $order->items->map(function ($item) use ($batchSerials) {
                     return [
                         'product_catalog_id' => $item->product_catalog_id,
                         'quantity' => $item->quantity,
                         'unit_price' => (float) $item->unit_price,
-                        'serials' => $preparedSerials
-                            ->where('fulfillment_order_item_id', $item->id)
-                            ->pluck('serial_number_snapshot')
+                        'serials' => $batchSerials
+                            ->where('product_catalog_id', $item->product_catalog_id)
+                            ->pluck('serial_number')
                             ->values()
                             ->all(),
                     ];
@@ -159,7 +213,7 @@ class DeliveryBatchPageController extends Controller
                     'export_type' => WarehouseConstants::EXPORT_NORMAL,
                     'customer_type' => $order->customer_type,
                     'customer_id' => $order->customer_id,
-                    'buyer_name' => $order->buyer_name,
+                    'buyer_name' => $order->buyer_name ?: $order->order_code,
                     'company_name' => $order->company_name,
                     'address' => $order->address,
                     'tax_code' => $order->tax_code,
@@ -168,13 +222,34 @@ class DeliveryBatchPageController extends Controller
                 ], $request->user()?->id);
 
                 $now = now();
-                FulfillmentOrderSerial::query()
-                    ->whereIn('id', $preparedSerials->pluck('id'))
-                    ->update([
-                        'status' => WarehouseConstants::ORDER_SERIAL_DELIVERED,
-                        'active_product_id' => null,
-                        'delivered_at' => $now,
-                    ]);
+                foreach ($order->items as $item) {
+                    $itemSerials = $batchSerials->where('product_catalog_id', $item->product_catalog_id)->values();
+                    foreach ($itemSerials as $batchSerial) {
+                        FulfillmentOrderSerial::query()->create([
+                            'fulfillment_order_id' => $order->id,
+                            'fulfillment_order_item_id' => $item->id,
+                            'product_id' => $batchSerial->product_id,
+                            'active_product_id' => null,
+                            'product_catalog_id' => $batchSerial->product_catalog_id,
+                            'serial_number_snapshot' => $batchSerial->serial_number,
+                            'status' => WarehouseConstants::ORDER_SERIAL_DELIVERED,
+                            'prepared_by' => $request->user()?->id,
+                            'prepared_at' => $now,
+                            'delivered_at' => $now,
+                        ]);
+
+                        $batchSerial->update([
+                            'delivery_batch_order_id' => $batchOrder->id,
+                            'fulfillment_order_id' => $order->id,
+                            'fulfillment_order_item_id' => $item->id,
+                            'status' => WarehouseConstants::DELIVERY_SERIAL_DELIVERED,
+                            'active_product_id' => null,
+                            'assigned_at' => $batchSerial->assigned_at ?: $now,
+                            'delivered_at' => $now,
+                            'updated_by' => $request->user()?->id,
+                        ]);
+                    }
+                }
 
                 $order->update([
                     'status' => WarehouseConstants::FULFILLMENT_DELIVERED,
@@ -183,17 +258,13 @@ class DeliveryBatchPageController extends Controller
                     'export_voucher_id' => $result['export_voucher_id'],
                 ]);
 
-                $order->batchOrders()->whereNotIn('status', [
-                    WarehouseConstants::DELIVERY_ORDER_DELIVERED,
-                    WarehouseConstants::DELIVERY_ORDER_FAILED,
-                    WarehouseConstants::DELIVERY_ORDER_CANCELLED,
-                ])->update([
+                $batchOrder->update([
                     'status' => WarehouseConstants::DELIVERY_ORDER_DELIVERED,
                     'delivered_at' => $now,
                 ]);
             });
 
-            return redirect()->route('delivery.orders.index')->with('success', 'Đã xác nhận giao hàng.');
+            return redirect()->route('delivery.orders.index')->with('success', 'Da xac nhan giao hang.');
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }
@@ -205,23 +276,13 @@ class DeliveryBatchPageController extends Controller
             'failure_reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        DB::transaction(function () use ($fulfillmentOrder, $validated, $request) {
+        DB::transaction(function () use ($fulfillmentOrder, $validated) {
             $order = FulfillmentOrder::query()
                 ->whereKey($fulfillmentOrder->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
             $now = now();
-            FulfillmentOrderSerial::query()
-                ->where('fulfillment_order_id', $order->id)
-                ->where('status', WarehouseConstants::ORDER_SERIAL_PREPARED)
-                ->lockForUpdate()
-                ->update([
-                    'status' => WarehouseConstants::ORDER_SERIAL_RELEASED,
-                    'active_product_id' => null,
-                    'released_at' => $now,
-                ]);
-
             $order->update([
                 'status' => WarehouseConstants::FULFILLMENT_FAILED,
                 'failed_at' => $now,
@@ -239,6 +300,6 @@ class DeliveryBatchPageController extends Controller
             ]);
         });
 
-        return redirect()->route('delivery.orders.index')->with('success', 'Đã đánh dấu giao thất bại.');
+        return redirect()->route('delivery.orders.index')->with('success', 'Da danh dau giao that bai.');
     }
 }

@@ -176,27 +176,6 @@ class DeliveryOrderFulfillmentService
     {
         DB::transaction(function () use ($batchOrder, $note, $userId) {
             $batchOrder->load('fulfillmentOrder');
-            $reservations = DeliveryBatchSerial::query()
-                ->where('delivery_batch_order_id', $batchOrder->id)
-                ->whereIn('status', [
-                    WarehouseConstants::DELIVERY_SERIAL_RESERVED,
-                    WarehouseConstants::DELIVERY_SERIAL_ASSIGNED,
-                ])
-                ->lockForUpdate()
-                ->get();
-
-            $this->serialService->releaseSerials($reservations, $userId);
-
-            FulfillmentOrderSerial::query()
-                ->where('fulfillment_order_id', $batchOrder->fulfillmentOrder->id)
-                ->where('status', WarehouseConstants::ORDER_SERIAL_PREPARED)
-                ->lockForUpdate()
-                ->update([
-                    'status' => WarehouseConstants::ORDER_SERIAL_RELEASED,
-                    'active_product_id' => null,
-                    'released_at' => now(),
-                ]);
-
             $now = now();
             $batchOrder->update([
                 'status' => WarehouseConstants::DELIVERY_ORDER_FAILED,

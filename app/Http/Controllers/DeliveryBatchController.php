@@ -145,9 +145,23 @@ class DeliveryBatchController extends Controller
         }
     }
 
-    public function deliverOrder(DeliveryBatchOrder $deliveryBatchOrder, DeliveryOrderFulfillmentService $service)
+    public function deliverOrder(Request $request, DeliveryBatchOrder $deliveryBatchOrder, DeliveryBatchSerialService $serialService, DeliveryOrderFulfillmentService $service)
     {
+        $validator = Validator::make($request->all(), [
+            'serials' => ['required'],
+        ]);
+
+        if ($validator->fails()) {
+            return $this->errorResponse('Du lieu xac nhan serial khong hop le.', $validator->errors(), 422);
+        }
+
         try {
+            $serials = $request->input('serials', []);
+            if (is_string($serials)) {
+                $serials = preg_split('/\R+/', $serials) ?: [];
+            }
+
+            $serialService->assignSerialsToOrder($deliveryBatchOrder, $serials, $request->user()?->id);
             $result = $service->deliver($deliveryBatchOrder, request()->user()?->id);
 
             return $this->successResponse('Giao don thanh cong, da tao phieu xuat kho.', $result);
@@ -165,7 +179,7 @@ class DeliveryBatchController extends Controller
         try {
             $service->fail($deliveryBatchOrder, $request->input('note'), $request->user()?->id);
 
-            return $this->successResponse('Da danh dau giao that bai va release serial.', [
+            return $this->successResponse('Da danh dau giao that bai.', [
                 'delivery_batch_order_id' => $deliveryBatchOrder->id,
             ]);
         } catch (Throwable $e) {

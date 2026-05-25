@@ -15,7 +15,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->unsignedBigInteger('store_id')->nullable();
             $table->string('customer_type')->default('retail');
-            $table->string('buyer_name');
+            $table->string('buyer_name')->nullable();
             $table->string('company_name')->nullable();
             $table->string('address')->nullable();
             $table->string('tax_code')->nullable();

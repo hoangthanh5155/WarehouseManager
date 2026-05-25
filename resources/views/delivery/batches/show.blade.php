@@ -78,7 +78,7 @@
                             <select name="fulfillment_order_id" class="form-select" required>
                                 <option value="">Chọn đơn</option>
                                 @foreach($availableOrders as $order)
-                                    <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name }} (SL {{ $order->total_quantity ?? 0 }})</option>
+                                    <option value="{{ $order->id }}">{{ $order->order_code }} - {{ $order->buyer_name ?: '-' }} (SL {{ $order->total_quantity ?? 0 }})</option>
                                 @endforeach
                             </select>
                         </div>
@@ -93,16 +93,66 @@
         </div>
 
         <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h5 class="fw-bold mb-3">Hàng trong chuyến</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Sản phẩm</th>
+                                    <th class="text-end">Tổng SN</th>
+                                    <th>SN còn trong chuyến</th>
+                                    <th>SN đã giao</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($batch->serials->groupBy('product_catalog_id') as $catalogSerials)
+                                    @php($catalog = $catalogSerials->first()->productCatalog)
+                                    @php($openSerials = $catalogSerials->whereIn('status', ['reserved', 'assigned']))
+                                    @php($deliveredSerials = $catalogSerials->where('status', 'delivered'))
+                                    <tr>
+                                        <td class="fw-semibold">{{ $catalog?->product_name ?? 'N/A' }}</td>
+                                        <td class="text-end">{{ number_format($catalogSerials->count()) }}</td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @forelse($openSerials as $serial)
+                                                    <span class="badge text-bg-light border">{{ $serial->serial_number }}</span>
+                                                @empty
+                                                    <span class="text-muted small">-</span>
+                                                @endforelse
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @forelse($deliveredSerials as $serial)
+                                                    <span class="badge text-bg-success">{{ $serial->serial_number }}{{ $serial->fulfillmentOrder ? ' / ' . $serial->fulfillmentOrder->order_code : '' }}</span>
+                                                @empty
+                                                    <span class="text-muted small">-</span>
+                                                @endforelse
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="4" class="text-center text-muted py-3">Chưa có SN trong chuyến.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
             <div class="vstack gap-3">
                 @forelse($batch->batchOrders as $batchOrder)
                     @php($order = $batchOrder->fulfillmentOrder)
-                    @php($preparedSerials = $order->preparedSerials->where('status', 'prepared'))
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                                 <div>
                                     <h5 class="fw-bold mb-1">{{ $order->order_code }}</h5>
-                                    <div class="text-muted">{{ $order->buyer_name }}</div>
+                                    <div class="text-muted">{{ $order->buyer_name ?: '-' }}</div>
                                 </div>
                                 <span class="badge align-self-start text-bg-{{ $statusClass[$batchOrder->status] ?? 'secondary' }}">{{ $statusLabel[$batchOrder->status] ?? $batchOrder->status }}</span>
                             </div>
@@ -113,23 +163,14 @@
                                         <tr>
                                             <th>Sản phẩm</th>
                                             <th class="text-end">SL</th>
-                                            <th>SN đã soạn</th>
                                             <th class="text-end">Thành tiền</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         @foreach($order->items as $item)
-                                            @php($itemSerials = $preparedSerials->where('fulfillment_order_item_id', $item->id))
                                             <tr>
                                                 <td>{{ $item->product_name_snapshot ?: ($item->productCatalog->product_name ?? 'N/A') }}</td>
                                                 <td class="text-end">{{ number_format($item->quantity) }}</td>
-                                                <td>
-                                                    <div class="d-flex flex-wrap gap-1">
-                                                        @foreach($itemSerials as $serial)
-                                                            <span class="badge text-bg-light border">{{ $serial->serial_number_snapshot }}</span>
-                                                        @endforeach
-                                                    </div>
-                                                </td>
                                                 <td class="text-end fw-semibold">{{ number_format($item->total_amount) }} đ</td>
                                             </tr>
                                         @endforeach

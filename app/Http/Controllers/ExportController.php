@@ -31,13 +31,14 @@ class ExportController extends Controller
                     ->whereDoesntHave('activeFulfillmentReservation')
                     ->whereDoesntHave('activeDeliveryReservation');
             }])
-            ->orderBy('product_name', 'asc')
-            ->get();
+                ->orderBy('product_name', 'asc')
+                ->get();
 
             $systemOrders = FulfillmentOrder::query()
                 ->whereIn('status', [
                     WarehouseConstants::FULFILLMENT_PENDING,
                     WarehouseConstants::FULFILLMENT_PENDING_PREPARE,
+                    WarehouseConstants::FULFILLMENT_READY_TO_DELIVER,
                 ])
                 ->whereIn('order_type', [
                     WarehouseConstants::ORDER_TYPE_SYSTEM,
@@ -99,7 +100,7 @@ class ExportController extends Controller
             if (!$item) {
                 return response()->json([
                     'success' => false,
-                    'message' => $productId ? 'SN sai sản phẩm.' : 'SN không có trong kho.',
+                    'message' => $productId ? 'SN sai san pham.' : 'SN khong co trong kho.',
                 ], 404);
             }
 
@@ -114,7 +115,7 @@ class ExportController extends Controller
             if ($reserved || $batchReserved) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'SN đang được giữ cho đơn khác.',
+                    'message' => 'SN dang duoc giu trong chuyen giao.',
                 ], 422);
             }
 
@@ -166,22 +167,29 @@ class ExportController extends Controller
             if (($payload['export_type'] ?? null) === WarehouseConstants::EXPORT_SYSTEM) {
                 $order = FulfillmentOrder::query()->findOrFail((int) $payload['fulfillment_order_id']);
                 $order = $preparationService->prepareSystemOrder($order, $payload['serials'], $request->user()?->id);
-            } else {
-                $order = $preparationService->prepareNormal($payload, $request->user()?->id);
+
+                return $this->successResponse('Da dua don vao chuyen giao.', [
+                    'fulfillment_order_id' => $order->id,
+                    'order_code' => $order->order_code,
+                    'print_url' => route('delivery.orders.print', $order),
+                    'public_url' => route('delivery.orders.public', $order->public_token),
+                ]);
             }
 
-            return $this->successResponse('Đã lưu chờ giao.', [
-                'fulfillment_order_id' => $order->id,
-                'order_code' => $order->order_code,
-                'print_url' => route('delivery.orders.print', $order),
-                'public_url' => route('delivery.orders.public', $order->public_token),
+            $result = $preparationService->prepareNormal($payload, $request->user()?->id);
+
+            return $this->successResponse('Da luu hang vao chuyen giao.', [
+                'delivery_batch_id' => $result['delivery_batch']->id,
+                'batch_code' => $result['delivery_batch']->batch_code,
+                'reserved_serials_count' => $result['reserved_serials_count'],
+                'print_url' => $result['print_url'],
             ]);
         } catch (ValidationException $e) {
-            return $this->errorResponse('Dữ liệu soạn hàng không hợp lệ.', $e->errors(), 422);
+            return $this->errorResponse('Du lieu soan hang khong hop le.', $e->errors(), 422);
         } catch (Throwable $e) {
             report($e);
 
-            return $this->errorResponse('Lỗi xử lý soạn hàng: ' . $e->getMessage(), [], 500);
+            return $this->errorResponse('Loi xu ly soan hang: ' . $e->getMessage(), [], 500);
         }
     }
 
