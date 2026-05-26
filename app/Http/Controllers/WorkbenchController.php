@@ -11,27 +11,22 @@ class WorkbenchController extends Controller
     {
         $user = $request->user();
 
-        $groups = [
+        $quickLinks = [
             [
                 'key' => 'overview',
-                'title' => 'Tổng quan hôm nay',
+                'title' => 'Tổng quan',
                 'description' => 'Theo dõi số liệu và việc cần xử lý.',
-                'icon' => 'bi-speedometer2',
-                'actions' => [
-                    [
-                        'label' => 'Tổng quan hệ thống',
-                        'description' => 'Mở màn hình tổng quan hiện có.',
-                        'icon' => 'bi-grid-1x2-fill',
-                        'route' => route('dashboard'),
-                        'badge' => null,
-                        'visible' => $user?->canViewOperationsDashboard(),
-                    ],
-                ],
+                'icon' => 'bi-grid-1x2-fill',
+                'route' => route('dashboard'),
+                'visible' => $user?->canViewOperationsDashboard(),
             ],
+        ];
+
+        $groups = [
             [
                 'key' => 'warehouse',
                 'title' => 'Kho',
-                'description' => 'Nhập kho, tồn kho, truy vết serial.',
+                'description' => 'Nhập kho, tồn kho.',
                 'icon' => 'bi-archive-fill',
                 'actions' => [
                     [
@@ -51,14 +46,6 @@ class WorkbenchController extends Controller
                         'visible' => $user?->canViewWarehouseReports()
                             || $user?->canImportStock()
                             || $user?->canExportStock(),
-                    ],
-                    [
-                        'label' => 'Truy vết Serial',
-                        'description' => 'Tra cứu lịch sử theo Serial Number.',
-                        'icon' => 'bi-upc-scan',
-                        'route' => route('serial.trace.index'),
-                        'badge' => null,
-                        'visible' => $user?->canTraceSerial(),
                     ],
                 ],
             ],
@@ -89,7 +76,7 @@ class WorkbenchController extends Controller
             [
                 'key' => 'delivery',
                 'title' => 'Giao hàng',
-                'description' => 'Chuyến giao, xử lý giao hàng, phương tiện giao hàng.',
+                'description' => 'Chuyến giao, xử lý giao hàng.',
                 'icon' => 'bi-truck',
                 'actions' => [
                     [
@@ -111,14 +98,6 @@ class WorkbenchController extends Controller
                         'visible' => $user?->canExportStock()
                             || $user?->canManageDeliveryBatches()
                             || $user?->canViewAllDeliveryBatches(),
-                    ],
-                    [
-                        'label' => 'Phương tiện giao hàng',
-                        'description' => 'Quản lý xe máy, ô tô dùng cho chuyến giao.',
-                        'icon' => 'bi-truck-front',
-                        'route' => route('delivery.vehicles.index'),
-                        'badge' => null,
-                        'visible' => $user?->canManageDeliveryVehicles(),
                     ],
                 ],
             ],
@@ -156,6 +135,11 @@ class WorkbenchController extends Controller
             ],
         ];
 
+        $quickLinks = collect($quickLinks)
+            ->filter(fn (array $link) => (bool) ($link['visible'] ?? false))
+            ->values()
+            ->all();
+
         $groups = collect($groups)
             ->map(function (array $group) {
                 $group['actions'] = collect($group['actions'])
@@ -172,6 +156,6 @@ class WorkbenchController extends Controller
         $selectedGroupKey = $request->query('group');
         $selectedGroup = collect($groups)->firstWhere('key', $selectedGroupKey);
 
-        return view('workbench.index', compact('groups', 'selectedGroup'));
+        return view('workbench.index', compact('groups', 'quickLinks', 'selectedGroup'));
     }
 }

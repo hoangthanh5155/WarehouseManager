@@ -17,7 +17,7 @@
         @endif
     </div>
 
-    @if(empty($groups))
+    @if(empty($groups) && empty($quickLinks))
         <div class="card border-0 shadow-sm">
             <div class="card-body text-center py-5">
                 <div class="display-6 text-muted mb-3"><i class="bi bi-lock"></i></div>
@@ -40,7 +40,7 @@
 
                 <div class="row g-3">
                     @foreach($selectedGroup['actions'] as $action)
-                        <div class="col-12 col-md-6 col-xl-4">
+                        <div class="col-6 col-md-6 col-xl-4">
                             <a href="{{ $action['route'] }}" class="workbench-action text-decoration-none">
                                 <div class="d-flex align-items-start gap-3">
                                     <div class="workbench-action-icon">
@@ -64,8 +64,25 @@
         </section>
     @else
         <div class="row g-3">
+            @foreach($quickLinks as $link)
+                <div class="col-6 col-md-6 col-xl-4">
+                    <a href="{{ $link['route'] }}" class="workbench-group-card text-decoration-none">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="workbench-group-icon">
+                                <i class="bi {{ $link['icon'] }}"></i>
+                            </div>
+                            <div class="min-w-0 flex-grow-1">
+                                <h5 class="fw-bold text-dark mb-1">{{ $link['title'] }}</h5>
+                                <div class="text-muted">{{ $link['description'] }}</div>
+                            </div>
+                            <i class="bi bi-box-arrow-up-right text-muted mt-1"></i>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+
             @foreach($groups as $group)
-                <div class="col-12 col-md-6 col-xl-4">
+                <div class="col-6 col-md-6 col-xl-4">
                     <a href="{{ route('workbench.index', ['group' => $group['key']]) }}" class="workbench-group-card text-decoration-none">
                         <div class="d-flex align-items-start gap-3">
                             <div class="workbench-group-icon">
@@ -142,8 +159,46 @@
     @media (max-width: 767.98px) {
         .workbench-group-card,
         .workbench-action {
-            min-height: 112px;
-            padding: 18px;
+            aspect-ratio: 1 / 1;
+            min-height: 0;
+            padding: 12px;
+        }
+
+        .workbench-group-card > .d-flex,
+        .workbench-action > .d-flex {
+            height: 100%;
+            flex-direction: column;
+            align-items: center !important;
+            justify-content: center;
+            text-align: center;
+            gap: 10px !important;
+        }
+
+        .workbench-group-card .bi-chevron-right,
+        .workbench-group-card .bi-box-arrow-up-right {
+            display: none;
+        }
+
+        .workbench-group-icon,
+        .workbench-action-icon {
+            width: 44px;
+            height: 44px;
+        }
+
+        .workbench-group-card h5,
+        .workbench-action strong {
+            font-size: .95rem;
+            line-height: 1.2;
+        }
+
+        .workbench-group-card .text-muted,
+        .workbench-action .text-muted {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: .78rem;
+            line-height: 1.25;
         }
     }
 </style>

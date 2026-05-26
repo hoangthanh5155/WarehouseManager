@@ -68,7 +68,8 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
 
     Route::get('/workbench', [WorkbenchController::class, 'index'])->name('workbench.index');
 
-    Route::get('/', [ProductController::class, 'index'])->name('products.index');
+    Route::redirect('/', '/workbench');
+    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::match(['get', 'post', 'put'], '/products/catalog/{id}', [ProductController::class, 'showCatalog'])
         ->middleware('permission:full_product_detail')
         ->name('products.showCatalog');
