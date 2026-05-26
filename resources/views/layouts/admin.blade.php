@@ -161,6 +161,12 @@
             @endphp
 
             <ul class="sidebar-nav" id="sidebarMenu">
+                <li class="nav-item">
+                    <a href="{{ route('workbench.index') }}" class="nav-link {{ request()->routeIs('workbench.*') ? 'active' : '' }}">
+                        <div><i class="bi bi-grid-3x3-gap-fill menu-icon"></i>Bàn làm việc</div>
+                    </a>
+                </li>
+
                 @if($canViewDashboard)
                     <li class="nav-item">
                         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">

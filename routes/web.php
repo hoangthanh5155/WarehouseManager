@@ -21,6 +21,7 @@ use App\Http\Controllers\ShopAccountController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StorePortalController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\WorkbenchController;
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/delivery/public/{token}', [DeliveryBatchPageController::class, 'publicSlip'])->name('delivery.orders.public');
@@ -64,6 +65,8 @@ Route::middleware(['auth', 'active.user', 'password.changed'])->group(function (
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/profile/password', [ProfileController::class, 'password'])->name('profile.password');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+    Route::get('/workbench', [WorkbenchController::class, 'index'])->name('workbench.index');
 
     Route::get('/', [ProductController::class, 'index'])->name('products.index');
     Route::match(['get', 'post', 'put'], '/products/catalog/{id}', [ProductController::class, 'showCatalog'])
