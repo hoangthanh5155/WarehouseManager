@@ -104,7 +104,7 @@
 
         <div class="info">
             <div>Khách hàng: <strong>{{ $order->buyer_name ?: '-' }}</strong></div>
-            <div>SĐT: <strong>{{ $order->tax_code ?: '-' }}</strong></div>
+            <div>SĐT: <strong>{{ $order->phone ?: '-' }}</strong></div>
             <div style="grid-column: 1 / -1;">Địa chỉ: <strong>{{ $order->address ?: '-' }}</strong></div>
         </div>
 

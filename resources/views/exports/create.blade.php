@@ -98,7 +98,7 @@
                     </button>
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive d-none d-md-block">
                     <table class="table table-bordered align-middle m-0" style="font-size: 0.9rem;">
                         <thead class="table-light">
                             <tr>
@@ -112,6 +112,7 @@
                         <tbody id="orderItemsBody"></tbody>
                     </table>
                 </div>
+                <div id="orderItemsMobile" class="d-md-none vstack gap-3"></div>
             </div>
 
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white">
@@ -218,7 +219,16 @@
         .btn-check + .btn { font-size: 0.85rem !important; padding: 10px 4px !important; }
         .card { padding: 12px !important; }
         .form-select, .form-control { font-size: 0.9rem !important; }
-        #orderItemsBody td { min-width: 130px; }
+        .export-order-mobile-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 12px;
+            background: #fff;
+            box-shadow: 0 .125rem .5rem rgba(0, 0, 0, .04);
+        }
+        .export-order-mobile-card .input-group {
+            min-width: 0;
+        }
     }
 </style>
 @endpush

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const orderItems = [];
 
     const orderItemsBody = document.getElementById('orderItemsBody');
+    const orderItemsMobile = document.getElementById('orderItemsMobile');
     const globalTotalAmount = document.getElementById('globalTotalAmount');
     const addOrderItemButton = document.getElementById('addOrderItem');
     const saveAndPrintButton = document.getElementById('btnSaveAndPrintPrepared');
@@ -51,6 +52,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return getCustomerType() === 'agency' ? Number(catalog.agency_price || 0) : Number(catalog.retail_price || 0);
     }
 
+    function quantityStepper(quantity) {
+        return `
+            <div class="input-group input-group-sm">
+                <button type="button" class="btn btn-outline-secondary" data-quantity-minus>-</button>
+                <input type="number" min="1" step="1" class="form-control text-center" value="${quantity}" data-order-quantity>
+                <button type="button" class="btn btn-outline-secondary" data-quantity-plus>+</button>
+            </div>
+        `;
+    }
+
     function addOrderItem(item = {}) {
         orderItems.push({
             product_catalog_id: item.product_catalog_id || '',
@@ -61,44 +72,81 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function renderOrderItems() {
-        if (!orderItemsBody) return;
+        if (!orderItemsBody && !orderItemsMobile) return;
 
         if (orderItems.length === 0) {
-            orderItemsBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có sản phẩm.</td></tr>';
+            if (orderItemsBody) {
+                orderItemsBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Chưa có sản phẩm.</td></tr>';
+            }
+            if (orderItemsMobile) {
+                orderItemsMobile.innerHTML = '<div class="text-center py-4 text-muted">Chưa có sản phẩm.</div>';
+            }
             globalTotalAmount.textContent = money(0);
             return;
         }
 
         let total = 0;
-        orderItemsBody.innerHTML = orderItems.map((item, index) => {
+        const rows = [];
+        const cards = [];
+
+        orderItems.forEach((item, index) => {
             const quantity = Math.max(1, Number(item.quantity || 1));
             const unitPrice = Math.max(0, Number(item.unit_price || 0));
             const amount = quantity * unitPrice;
+            const hasZeroPrice = item.product_catalog_id && unitPrice <= 0;
             total += amount;
 
-            return `
+            rows.push(`
                 <tr data-order-item-row="${index}">
                     <td>
                         <select class="form-select form-select-sm" data-order-product>
                             ${catalogOptions(item.product_catalog_id)}
                         </select>
                     </td>
+                    <td>${quantityStepper(quantity)}</td>
                     <td>
-                        <input type="number" min="1" step="1" class="form-control form-control-sm text-center" value="${quantity}" data-order-quantity>
+                        <input type="number" min="0" step="1000" class="form-control form-control-sm text-end ${hasZeroPrice ? 'border-warning' : ''}" value="${unitPrice}" data-order-price>
+                        ${hasZeroPrice ? '<div class="small text-warning fw-semibold mt-1">Đơn giá 0đ</div>' : ''}
                     </td>
-                    <td>
-                        <input type="number" min="0" step="1000" class="form-control form-control-sm text-end" value="${unitPrice}" data-order-price>
-                    </td>
-                    <td class="text-end fw-bold">${money(amount)}</td>
+                    <td class="text-end fw-bold" data-order-amount>${money(amount)}</td>
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger" data-remove-order-item="${index}">
                             <i class="bi bi-trash"></i>
                         </button>
                     </td>
                 </tr>
-            `;
-        }).join('');
+            `);
 
+            cards.push(`
+                <div class="export-order-mobile-card" data-order-item-row="${index}">
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold mb-1">Sản phẩm</label>
+                        <select class="form-select" data-order-product>
+                            ${catalogOptions(item.product_catalog_id)}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted fw-bold mb-1">Số lượng</label>
+                        ${quantityStepper(quantity)}
+                    </div>
+                    <div class="mb-2">
+                        <label class="small text-muted fw-bold mb-1">Đơn giá</label>
+                        <input type="number" min="0" step="1000" class="form-control text-end ${hasZeroPrice ? 'border-warning' : ''}" value="${unitPrice}" data-order-price>
+                        ${hasZeroPrice ? '<div class="small text-warning fw-semibold mt-1">Đơn giá đang là 0đ</div>' : ''}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center border-top pt-2 mb-3">
+                        <span class="text-muted fw-bold">Thành tiền</span>
+                        <span class="fw-bold text-danger" data-order-amount>${money(amount)}</span>
+                    </div>
+                    <button type="button" class="btn btn-outline-danger w-100 fw-semibold" data-remove-order-item="${index}">
+                        <i class="bi bi-trash me-1"></i>Xóa
+                    </button>
+                </div>
+            `);
+        });
+
+        if (orderItemsBody) orderItemsBody.innerHTML = rows.join('');
+        if (orderItemsMobile) orderItemsMobile.innerHTML = cards.join('');
         globalTotalAmount.textContent = money(total);
     }
 
@@ -111,7 +159,27 @@ document.addEventListener('DOMContentLoaded', function () {
         orderItems[index].unit_price = Math.max(0, Number(row.querySelector('[data-order-price]')?.value || 0));
     }
 
-    orderItemsBody?.addEventListener('change', function (event) {
+    function updateRenderedTotals(index) {
+        const item = orderItems[index];
+        if (!item) return;
+
+        const quantity = Math.max(1, Number(item.quantity || 1));
+        const unitPrice = Math.max(0, Number(item.unit_price || 0));
+        const amount = quantity * unitPrice;
+
+        document.querySelectorAll(`[data-order-item-row="${index}"]`).forEach((row) => {
+            row.querySelectorAll('[data-order-amount]').forEach((target) => {
+                target.textContent = money(amount);
+            });
+        });
+
+        const total = orderItems.reduce((sum, row) => {
+            return sum + Math.max(1, Number(row.quantity || 1)) * Math.max(0, Number(row.unit_price || 0));
+        }, 0);
+        globalTotalAmount.textContent = money(total);
+    }
+
+    function handleItemChange(event) {
         const row = event.target.closest('[data-order-item-row]');
         if (!row) return;
 
@@ -124,23 +192,57 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         renderOrderItems();
-    });
+    }
 
-    orderItemsBody?.addEventListener('input', function (event) {
+    function handleItemInput(event) {
+        if (!event.target.closest('[data-order-quantity], [data-order-price]')) return;
+
         const row = event.target.closest('[data-order-item-row]');
         if (!row) return;
 
+        const quantityInput = event.target.closest('[data-order-quantity]');
+        if (quantityInput && Number(quantityInput.value || 0) < 1) {
+            quantityInput.value = 1;
+        }
+
         updateItemFromRow(row);
-        renderOrderItems();
-    });
+        updateRenderedTotals(Number(row.dataset.orderItemRow));
+    }
 
-    orderItemsBody?.addEventListener('click', function (event) {
-        const button = event.target.closest('[data-remove-order-item]');
-        if (!button) return;
+    function handleItemClick(event) {
+        const row = event.target.closest('[data-order-item-row]');
+        const removeButton = event.target.closest('[data-remove-order-item]');
+        const minusButton = event.target.closest('[data-quantity-minus]');
+        const plusButton = event.target.closest('[data-quantity-plus]');
 
-        orderItems.splice(Number(button.dataset.removeOrderItem), 1);
+        if (removeButton) {
+            orderItems.splice(Number(removeButton.dataset.removeOrderItem), 1);
+            renderOrderItems();
+            return;
+        }
+
+        if (!row) return;
+
+        const index = Number(row.dataset.orderItemRow);
+        if (!Number.isInteger(index) || !orderItems[index]) return;
+
+        if (minusButton) {
+            orderItems[index].quantity = Math.max(1, Number(orderItems[index].quantity || 1) - 1);
+        } else if (plusButton) {
+            orderItems[index].quantity = Math.max(1, Number(orderItems[index].quantity || 1) + 1);
+        } else {
+            return;
+        }
+
         renderOrderItems();
-    });
+    }
+
+    orderItemsBody?.addEventListener('change', handleItemChange);
+    orderItemsMobile?.addEventListener('change', handleItemChange);
+    orderItemsBody?.addEventListener('input', handleItemInput);
+    orderItemsMobile?.addEventListener('input', handleItemInput);
+    orderItemsBody?.addEventListener('click', handleItemClick);
+    orderItemsMobile?.addEventListener('click', handleItemClick);
 
     addOrderItemButton?.addEventListener('click', () => addOrderItem());
 
@@ -240,6 +342,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const items = validItems();
         if (items.length === 0) {
             showToast('Vui lòng thêm sản phẩm cần xuất.', 'warning');
+            return;
+        }
+
+        if (items.some((item) => Number(item.unit_price || 0) <= 0)) {
+            showToast('Có sản phẩm đang có đơn giá 0đ. Vui lòng kiểm tra đơn giá trước khi lưu.', 'warning');
             return;
         }
 
